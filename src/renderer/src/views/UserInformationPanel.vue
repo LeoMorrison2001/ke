@@ -185,7 +185,7 @@ onMounted(() => {
     </div>
 
     <div v-if="dialogType" class="modal-backdrop" @click.self="dismissDialog">
-      <section class="dialog" :aria-label="dialogTitle" role="dialog" aria-modal="true">
+      <section class="modal-panel dialog" :aria-label="dialogTitle" role="dialog" aria-modal="true">
         <h2>{{ dialogTitle }}</h2>
 
         <template v-if="dialogType === 'add'">
@@ -271,23 +271,23 @@ onMounted(() => {
 }
 
 .primary-button {
-  color: #fff;
-  border: 1px solid #3d8058;
-  background: #3d8058;
+  color: var(--color-on-accent);
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
 }
 
 .primary-button:hover {
-  background: #34704c;
+  background: var(--color-accent-hover);
 }
 
 .outline-button {
-  color: #4c596c;
-  border: 1px solid #dde1e7;
-  background: #fff;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .outline-button:hover {
-  background: #f7f8fa;
+  background: var(--color-surface-hover);
 }
 
 .danger-button {
@@ -313,9 +313,9 @@ table {
   width: 100%;
   min-width: 760px;
   border-spacing: 0;
-  color: #4c596c;
+  color: var(--color-text-muted);
   font-size: 13px;
-  border: 1px solid #e3e6ea;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
 }
 
@@ -323,13 +323,13 @@ th,
 td {
   padding: 12px 14px;
   text-align: left;
-  border-bottom: 1px solid #edf0f2;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 th {
-  color: #667085;
+  color: var(--color-text-muted);
   font-weight: 600;
-  background: #f8f9fa;
+  background: var(--color-surface-muted);
 }
 
 tbody tr:last-child td {
@@ -341,11 +341,11 @@ tbody tr:last-child td {
 }
 
 .status {
-  color: #8993a1;
+  color: var(--color-text-subtle);
 }
 
 .status.active {
-  color: #28704a;
+  color: var(--color-accent-text);
   font-weight: 600;
 }
 
@@ -380,10 +380,6 @@ tbody tr:last-child td {
   box-sizing: border-box;
   width: min(100%, 400px);
   padding: 22px;
-  color: #2c3544;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 16px 40px rgb(15 23 42 / 20%);
 }
 
 h2,

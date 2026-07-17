@@ -603,13 +603,13 @@ const createUser = async (): Promise<void> => {
 }
 
 .primary-button {
-  color: #fff;
+  color: var(--color-on-accent);
   border: 0;
-  background: #252525;
+  background: var(--color-accent);
 }
 
 .primary-button:hover {
-  background: #4a4a4a;
+  background: var(--color-accent-hover);
 }
 
 .primary-button:disabled {
@@ -720,15 +720,6 @@ html[data-theme='dark'] .onboarding-content .choice-group button.selected {
   background: #303030;
 }
 
-html[data-theme='dark'] .primary-button {
-  color: #141414;
-  background: #e4e8ee;
-}
-
-html[data-theme='dark'] .primary-button:hover {
-  background: #fff;
-}
-
 html[data-theme='dark'] .back-button {
   color: #d8dee8;
   border-color: #303030;
@@ -739,7 +730,7 @@ html[data-theme='dark'] .error {
   color: #f08b8b;
 }
 
-@media (width <= 560px) {
+@media (max-width: 640px) {
   .choice-group {
     grid-template-columns: 1fr;
   }

@@ -49,9 +49,9 @@ const router = useRouter()
 .page-view {
   display: grid;
   height: 100%;
-  color: #252525;
+  color: var(--color-text);
   grid-template-rows: 48px minmax(0, 1fr);
-  background: #fff;
+  background: var(--color-page);
 }
 
 .console {
@@ -61,8 +61,7 @@ const router = useRouter()
   padding: 7px 12px;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #efefef;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 h1,
@@ -71,7 +70,7 @@ h2 {
 }
 
 h1 {
-  color: #252525;
+  color: var(--color-text);
   font-size: 16px;
   font-weight: 600;
 }
@@ -82,7 +81,7 @@ h1 {
   gap: 5px;
   padding: 0 9px;
   align-items: center;
-  color: #4a4a4a;
+  color: var(--color-text-muted);
   cursor: pointer;
   font: inherit;
   font-size: 13px;
@@ -92,30 +91,30 @@ h1 {
 }
 
 .back-button:hover {
-  background: #f3f3f3;
+  background: var(--color-surface-hover);
 }
 
 .apps-content {
   display: flex;
   overflow-y: auto;
-  padding: 24px 40px 40px;
+  padding: var(--content-padding);
   gap: 18px;
   flex-direction: column;
 }
 
 .apps-group {
   overflow: hidden;
-  border: 1px solid #e3e6ea;
+  border: 1px solid var(--color-border);
   border-radius: 15px;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 h2 {
   padding: 14px 18px;
-  color: #2c3544;
+  color: var(--color-text);
   font-size: 14px;
   font-weight: 600;
-  border-bottom: 1px solid #e9ebee;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .apps-group__content {
@@ -132,20 +131,20 @@ h2 {
   aspect-ratio: 1;
   padding: 10px;
   gap: 6px;
-  color: #4c596c;
+  color: var(--color-text-muted);
   cursor: pointer;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
   place-items: center;
-  border: 1px solid #e3e6ea;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .application-card:hover {
-  border-color: #cfd5dc;
-  background: #f7f8fa;
+  border-color: var(--color-border);
+  background: var(--color-surface-hover);
 }
 
 .memory-icon {
@@ -158,7 +157,7 @@ h2 {
 
 @media (max-width: 640px) {
   .apps-content {
-    padding: 20px 20px 28px;
+    padding: var(--content-padding-compact);
   }
 }
 </style>

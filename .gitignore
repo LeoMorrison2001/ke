@@ -4,6 +4,9 @@
 /out/
 /release/
 
+# Local product and implementation documentation
+/docs/
+
 # Tool caches and logs
 /.eslintcache
 *.log

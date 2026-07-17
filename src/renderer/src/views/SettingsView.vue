@@ -144,9 +144,9 @@ onMounted(() => {
   display: grid;
   height: 100%;
   min-height: 0;
-  color: #1f2937;
+  color: var(--color-text);
   grid-template-rows: auto minmax(0, 1fr);
-  background: #fff;
+  background: var(--color-page);
 }
 
 .console {
@@ -156,8 +156,7 @@ onMounted(() => {
   padding: 7px 12px;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #efefef;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 h1,
@@ -167,7 +166,7 @@ p {
 }
 
 h1 {
-  color: #252525;
+  color: var(--color-text);
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 0;
@@ -181,11 +180,11 @@ h1 {
   padding: 0 11px;
   align-items: center;
   justify-content: center;
-  color: #4c596c;
+  color: var(--color-text-muted);
   cursor: pointer;
   font: inherit;
   font-size: 13px;
-  border: 1px solid #dde1e7;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   background: transparent;
 }
@@ -199,25 +198,25 @@ h1 {
 
 .back-button:hover,
 .outline-button:hover {
-  background: #f7f8fa;
+  background: var(--color-surface-hover);
 }
 
 .outline-button:disabled {
-  color: #a1a8b3;
+  color: var(--color-text-subtle);
   cursor: not-allowed;
-  background: #fafafa;
+  background: var(--color-surface-muted);
 }
 
 .settings-content {
   overflow-y: auto;
-  padding: 24px 40px 40px;
+  padding: var(--content-padding);
 }
 
 .settings-group {
   overflow: hidden;
-  border: 1px solid #e3e6ea;
+  border: 1px solid var(--color-border);
   border-radius: 15px;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .settings-group + .settings-group {
@@ -226,10 +225,10 @@ h1 {
 
 h2 {
   padding: 14px 18px;
-  color: #2c3544;
+  color: var(--color-text);
   font-size: 14px;
   font-weight: 600;
-  border-bottom: 1px solid #e9ebee;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .setting-row {
@@ -249,13 +248,13 @@ h2 {
   display: flex;
   gap: 7px;
   align-items: center;
-  color: #1e2939;
+  color: var(--color-text);
   font-size: 14px;
   font-weight: 600;
 }
 
 .setting-row__title svg {
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 .theme-row {
@@ -271,28 +270,28 @@ h2 {
 .theme-options button {
   height: 34px;
   padding: 0 12px;
-  color: #4c596c;
+  color: var(--color-text-muted);
   cursor: pointer;
   font: inherit;
   font-size: 13px;
-  border: 1px solid #dde1e7;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .theme-options button:hover {
-  background: #f7f8fa;
+  background: var(--color-surface-hover);
 }
 
 .theme-options button.active {
-  color: #28704a;
-  border-color: #b9d5c2;
-  background: #f4faf5;
+  color: var(--color-accent-text);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 
 .setting-row p {
   margin-top: 5px;
-  color: #8993a1;
+  color: var(--color-text-subtle);
   font-size: 13px;
   line-height: 1.45;
 }
@@ -301,7 +300,7 @@ code {
   display: block;
   margin-top: 6px;
   overflow-wrap: anywhere;
-  color: #718096;
+  color: var(--color-text-muted);
   font-family: inherit;
   font-size: 13px;
   line-height: 1.45;
@@ -327,7 +326,7 @@ code {
 
 @media (max-width: 640px) {
   .settings-content {
-    padding: 20px 20px 28px;
+    padding: var(--content-padding-compact);
   }
 
   .setting-row {

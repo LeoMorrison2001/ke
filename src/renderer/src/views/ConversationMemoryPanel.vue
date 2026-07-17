@@ -146,7 +146,7 @@ onBeforeUnmount(() => {
 
     <div v-if="selectedConversation" class="modal-backdrop" @click.self="closeDialog">
       <section
-        class="dialog"
+        class="modal-panel dialog"
         aria-modal="true"
         role="dialog"
         :aria-label="selectedConversation.title"
@@ -198,9 +198,9 @@ table {
   min-width: 840px;
   table-layout: fixed;
   border-spacing: 0;
-  color: #4c596c;
+  color: var(--color-text-muted);
   font-size: 13px;
-  border: 1px solid #e3e6ea;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
 }
 th,
@@ -210,12 +210,12 @@ td {
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
-  border-bottom: 1px solid #edf0f2;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 th {
-  color: #667085;
+  color: var(--color-text-muted);
   font-weight: 600;
-  background: #f8f9fa;
+  background: var(--color-surface-muted);
 }
 tbody tr:last-child td {
   border-bottom: 0;
@@ -240,7 +240,7 @@ tbody tr:last-child td {
 .close-button,
 .load-older {
   padding: 0;
-  color: #28704a;
+  color: var(--color-accent-text);
   cursor: pointer;
   font: inherit;
   font-size: 13px;
@@ -250,7 +250,7 @@ tbody tr:last-child td {
 .empty-cell,
 .empty-history {
   padding: 30px;
-  color: #8993a1;
+  color: var(--color-text-subtle);
   text-align: center;
 }
 .page-error,
@@ -266,17 +266,13 @@ tbody tr:last-child td {
   height: min(640px, calc(100vh - 40px));
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
-  color: #2c3544;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 16px 40px rgb(15 23 42 / 20%);
 }
 .dialog header {
   display: flex;
   padding: 18px 20px;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #edf0f2;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 h2,
 p {
@@ -287,16 +283,16 @@ h2 {
 }
 .dialog header p {
   margin-top: 5px;
-  color: #8993a1;
+  color: var(--color-text-subtle);
   font-size: 12px;
 }
 .close-button {
   padding: 6px 8px;
-  color: #4c596c;
+  color: var(--color-text-muted);
   border-radius: 6px;
 }
 .close-button:hover {
-  background: #f5f6f8;
+  background: var(--color-surface-hover);
 }
 .message-list {
   display: flex;
@@ -326,7 +322,7 @@ h2 {
   margin: 0 auto 16px;
 }
 .load-older:disabled {
-  color: #8993a1;
+  color: var(--color-text-subtle);
   cursor: wait;
 }
 article {
@@ -339,37 +335,13 @@ article {
 }
 article.user {
   align-self: flex-end;
-  background: #eaf4fe;
+  background: var(--color-accent-soft);
 }
 article p {
   color: inherit;
 }
 article.assistant {
   align-self: flex-start;
-  background: #f4f4f4;
-}
-:global(html[data-theme='dark']) table {
-  color: #d8dee8;
-  border-color: #303030;
-}
-:global(html[data-theme='dark']) th {
-  color: #aeb7c3;
-  background: #202020;
-}
-:global(html[data-theme='dark']) th,
-:global(html[data-theme='dark']) td,
-:global(html[data-theme='dark']) .dialog header {
-  border-color: #303030;
-}
-:global(html[data-theme='dark']) .dialog {
-  color: #e4e8ee;
-  background: #181818;
-}
-:global(html[data-theme='dark']) .close-button:hover,
-:global(html[data-theme='dark']) article.assistant {
-  background: #252525;
-}
-:global(html[data-theme='dark']) article.user {
-  background: #244b68;
+  background: var(--color-surface-muted);
 }
 </style>

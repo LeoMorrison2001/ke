@@ -291,7 +291,7 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
     >
       <section
         aria-modal="true"
-        class="archive-dialog"
+        class="modal-panel archive-dialog"
         role="dialog"
         aria-labelledby="archive-dialog-title"
       >
@@ -314,9 +314,9 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
   position: relative;
   height: 100%;
   overflow: hidden;
-  color: #252525;
+  color: var(--color-text);
   grid-template-rows: auto minmax(0, 1fr) auto;
-  background: #fff;
+  background: var(--color-page);
 }
 
 .console {
@@ -326,8 +326,7 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
   padding: 7px 12px;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #efefef;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .console__left {
@@ -340,7 +339,7 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #4a4a4a;
+  color: var(--color-text-muted);
   cursor: pointer;
   font: inherit;
   border: 0;
@@ -359,7 +358,7 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
   height: 30px;
   align-items: center;
   justify-content: center;
-  color: #4a4a4a;
+  color: var(--color-text-muted);
   cursor: pointer;
   border: 0;
   border-radius: 7px;
@@ -367,7 +366,7 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
 }
 
 .header-icon-button:hover {
-  background: #f3f3f3;
+  background: var(--color-surface-hover);
 }
 
 .drawer-button {
@@ -378,7 +377,7 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
 
 .drawer-button:hover,
 .new-chat-button:hover {
-  background: #f3f3f3;
+  background: var(--color-surface-hover);
 }
 
 .new-chat-button {
@@ -403,7 +402,7 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
   bottom: 0;
   left: 0;
   width: clamp(280px, 30vw, 360px);
-  background: #f5f5f5;
+  background: var(--color-surface);
   box-shadow: 8px 0 24px rgb(0 0 0 / 12%);
 }
 
@@ -414,7 +413,7 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
 h2 {
   margin: 0 0 10px;
   padding: 0;
-  color: #252525;
+  color: var(--color-text);
   font-size: 16px;
   font-weight: 600;
 }
@@ -439,7 +438,7 @@ ul {
   flex: 1;
   padding: 9px 76px 9px 8px;
   overflow: hidden;
-  color: #303030;
+  color: var(--color-text);
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -449,7 +448,7 @@ ul {
 
 .history-item:hover,
 .history-item.active {
-  background: #e8e8e8;
+  background: var(--color-surface-hover);
 }
 
 .history-actions {
@@ -476,22 +475,22 @@ ul {
   padding: 0;
   align-items: center;
   justify-content: center;
-  color: #6e6e6e;
-  border: 1px solid #dedede;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .history-action:hover {
-  background: #e5e5e5;
+  background: var(--color-surface-hover);
 }
 
 .history-action.pinned {
-  color: #28704a;
+  color: var(--color-accent-text);
 }
 
 .history-action.archive:hover {
-  color: #3b6da2;
+  color: var(--color-accent-text);
 }
 
 .history-action:disabled {
@@ -503,10 +502,6 @@ ul {
   box-sizing: border-box;
   width: min(360px, 100%);
   padding: 20px;
-  color: #252525;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 16px 40px rgb(0 0 0 / 18%);
 }
 
 .archive-dialog h3,
@@ -521,7 +516,7 @@ ul {
 
 .archive-dialog p {
   margin-top: 9px;
-  color: #6f6f6f;
+  color: var(--color-text-muted);
   font-size: 13px;
   line-height: 1.55;
 }
@@ -536,24 +531,24 @@ ul {
 .archive-dialog__actions button {
   height: 32px;
   padding: 0 12px;
-  color: #4c4c4c;
-  border: 1px solid #dedede;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
   border-radius: 7px;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .archive-dialog__actions button:hover {
-  background: #f4f4f4;
+  background: var(--color-surface-hover);
 }
 
 .archive-dialog__actions .archive-dialog__confirm {
   color: #fff;
-  border-color: #3b6da2;
-  background: #3b6da2;
+  border-color: #3d8058;
+  background: #3d8058;
 }
 
 .archive-dialog__actions .archive-dialog__confirm:hover {
-  background: #2e5985;
+  background: #34704c;
 }
 
 .drawer-enter-active,
@@ -615,12 +610,12 @@ ul {
 
 .messages article.user {
   align-self: flex-end;
-  background: #eaf4fe;
+  background: var(--color-accent-soft);
 }
 
 .messages article.assistant {
   align-self: flex-start;
-  background: #f4f4f4;
+  background: var(--color-surface-muted);
 }
 
 .message-entry {
@@ -690,9 +685,9 @@ ul {
   overflow: hidden;
   padding: 12px;
   margin: 0 auto;
-  border: 1px solid #e6e6e6;
+  border: 1px solid var(--color-border);
   border-radius: 21px;
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: 0 3px 12px rgb(0 0 0 / 5%);
 }
 
@@ -704,7 +699,7 @@ textarea {
   padding: 4px;
   resize: none;
   overflow-y: hidden;
-  color: #272727;
+  color: var(--color-text);
   font: inherit;
   line-height: 1.5;
   outline: none;
@@ -748,7 +743,7 @@ button {
   padding: 0;
   align-items: center;
   justify-content: center;
-  color: #323232;
+  color: var(--color-text);
   cursor: pointer;
   font: inherit;
   border: 0;
@@ -760,15 +755,30 @@ button {
   height: 29px;
   color: #fff;
   border-radius: 50%;
-  background: #91c8f7;
+  background: #3d8058;
 }
 
 .send-button:hover {
-  background: #6eb5ee;
+  background: #34704c;
 }
 
 .send-button:disabled {
   cursor: not-allowed;
-  background: #d2d2d2;
+  background: var(--color-border);
+}
+
+@media (max-width: 640px) {
+  .chat-area {
+    padding: 16px;
+  }
+
+  .messages,
+  .composer {
+    width: 100%;
+  }
+
+  .composer-wrap {
+    padding: 10px 12px 12px;
+  }
 }
 </style>

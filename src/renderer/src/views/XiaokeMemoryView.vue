@@ -72,9 +72,9 @@ const openSection = (section: MemoryMenuItem['section']): void => {
 .memory-view {
   display: grid;
   height: 100%;
-  color: #252525;
+  color: var(--color-text);
   grid-template-rows: 48px minmax(0, 1fr);
-  background: #fff;
+  background: var(--color-page);
 }
 
 .console {
@@ -84,7 +84,7 @@ const openSection = (section: MemoryMenuItem['section']): void => {
   padding: 7px 12px;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 h1,
@@ -104,7 +104,7 @@ h1 {
   gap: 5px;
   padding: 0 9px;
   align-items: center;
-  color: #4a4a4a;
+  color: var(--color-text-muted);
   cursor: pointer;
   font: inherit;
   font-size: 13px;
@@ -114,7 +114,7 @@ h1 {
 }
 
 .back-button:hover {
-  background: #f3f3f3;
+  background: var(--color-surface-hover);
 }
 
 .memory-layout {
@@ -128,14 +128,14 @@ h1 {
   padding: 16px 10px;
   gap: 4px;
   flex-direction: column;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .memory-menu button {
   width: 100%;
   min-height: 36px;
   padding: 0 12px;
-  color: #4c596c;
+  color: var(--color-text-muted);
   cursor: pointer;
   font: inherit;
   font-size: 13px;
@@ -146,21 +146,21 @@ h1 {
 }
 
 .memory-menu button:hover {
-  background: #f5f6f8;
+  background: var(--color-surface-hover);
 }
 
 .memory-menu button.active {
-  color: #28704a;
+  color: var(--color-accent-text);
   font-weight: 600;
-  background: #f0f8f2;
+  background: var(--color-accent-soft);
 }
 
 .memory-content {
   display: grid;
   min-width: 0;
   place-items: center;
-  border-top: 1px solid #e9ebee;
-  border-left: 1px solid #e9ebee;
+  border-top: 1px solid var(--color-border-subtle);
+  border-left: 1px solid var(--color-border-subtle);
   border-top-left-radius: 14px;
 }
 
