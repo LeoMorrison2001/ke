@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft } from 'lucide-vue-next'
+import { ArrowLeft, Brain } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -14,7 +14,21 @@ const router = useRouter()
         返回聊天
       </button>
     </header>
-    <main>应用</main>
+    <main class="apps-content">
+      <section class="apps-group" aria-labelledby="system-applications-title">
+        <h2 id="system-applications-title">系统应用</h2>
+        <div class="apps-group__content">
+          <button
+            class="application-card"
+            type="button"
+            @click="router.push({ name: 'xiaoke-memory' })"
+          >
+            <Brain class="memory-icon" :size="26" :stroke-width="1.7" />
+            <span>小可记忆</span>
+          </button>
+        </div>
+      </section>
+    </main>
   </section>
 </template>
 
@@ -38,8 +52,12 @@ const router = useRouter()
   background: #fff;
 }
 
-h1 {
+h1,
+h2 {
   margin: 0;
+}
+
+h1 {
   color: #252525;
   font-size: 16px;
   font-weight: 600;
@@ -64,10 +82,63 @@ h1 {
   background: #f3f3f3;
 }
 
-main {
+.apps-content {
+  overflow-y: auto;
+  padding: 24px 40px 40px;
+}
+
+.apps-group {
+  overflow: hidden;
+  border: 1px solid #e3e6ea;
+  border-radius: 15px;
+  background: #fff;
+}
+
+h2 {
+  padding: 14px 18px;
+  color: #2c3544;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid #e9ebee;
+}
+
+.apps-group__content {
+  display: flex;
+  min-height: 88px;
+  padding: 18px;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.application-card {
   display: grid;
-  font-size: 20px;
+  width: 88px;
+  aspect-ratio: 1;
+  padding: 10px;
+  gap: 6px;
+  color: #4c596c;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
   font-weight: 600;
   place-items: center;
+  border: 1px solid #e3e6ea;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.application-card:hover {
+  border-color: #cfd5dc;
+  background: #f7f8fa;
+}
+
+.memory-icon {
+  color: #5c8e70;
+}
+
+@media (max-width: 640px) {
+  .apps-content {
+    padding: 20px 20px 28px;
+  }
 }
 </style>

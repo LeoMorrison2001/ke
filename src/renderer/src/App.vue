@@ -169,6 +169,8 @@ html[data-theme='dark'] .console h1,
 html[data-theme='dark'] .settings-view h1,
 html[data-theme='dark'] .settings-view h2,
 html[data-theme='dark'] .settings-view .setting-row__title,
+html[data-theme='dark'] .page-view h1,
+html[data-theme='dark'] .page-view h2,
 html[data-theme='dark'] .settings-view code {
   color: #e4e8ee;
 }
@@ -297,8 +299,50 @@ html[data-theme='dark'] .settings-group {
   background: #181818;
 }
 
-html[data-theme='dark'] .settings-view h2 {
+html[data-theme='dark'] .settings-view h2,
+html[data-theme='dark'] .page-view h2 {
   border-color: #303030;
+}
+
+html[data-theme='dark'] .apps-group {
+  border-color: #303030;
+  background: #181818;
+}
+
+html[data-theme='dark'] .application-card {
+  color: #e4e8ee;
+  border-color: #303030;
+  background: #181818;
+}
+
+html[data-theme='dark'] .application-card:hover {
+  border-color: #3c3c3c;
+  background: #303030;
+}
+
+html[data-theme='dark'] .memory-icon {
+  color: #8ed3a2;
+}
+
+html[data-theme='dark'] .memory-content {
+  border-color: #303030;
+}
+
+html[data-theme='dark'] .memory-menu {
+  background: #181818;
+}
+
+html[data-theme='dark'] .memory-menu button {
+  color: #aeb7c3;
+}
+
+html[data-theme='dark'] .memory-menu button:hover {
+  background: #303030;
+}
+
+html[data-theme='dark'] .memory-menu button.active {
+  color: #a8d8b5;
+  background: #253d2d;
 }
 
 html[data-theme='dark'] .settings-view .setting-row p,
