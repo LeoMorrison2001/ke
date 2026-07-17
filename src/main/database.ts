@@ -13,7 +13,7 @@ import { app } from 'electron'
 
 const DATABASE_DIRECTORY_NAME = 'data'
 const DATABASE_FILE_NAME = 'ke.sqlite'
-const DATABASE_SCHEMA_VERSION = 3
+const DATABASE_SCHEMA_VERSION = 5
 const STORAGE_SETTINGS_FILE_NAME = 'storage-settings.json'
 
 let database: DatabaseSync | undefined
@@ -68,6 +68,22 @@ const applySchema = (connection: DatabaseSync): void => {
         FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
       );
 
+      CREATE TABLE IF NOT EXISTS user_profile_change_logs (
+        id TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        field_name TEXT NOT NULL,
+        old_value TEXT NOT NULL,
+        new_value TEXT NOT NULL,
+        source TEXT NOT NULL CHECK (source IN ('ai_tool', 'settings', 'onboarding')),
+        tool_name TEXT,
+        conversation_id TEXT,
+        tool_call_id TEXT,
+        status TEXT NOT NULL CHECK (status IN ('applied', 'unchanged')),
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL
+      );
+
       CREATE INDEX IF NOT EXISTS idx_conversations_updated_at
         ON conversations(updated_at DESC);
 
@@ -77,11 +93,23 @@ const applySchema = (connection: DatabaseSync): void => {
           : ''
       }
 
+      ${
+        currentVersion.user_version === 4
+          ? `ALTER TABLE user_profile_change_logs ADD COLUMN tool_name TEXT;
+             UPDATE user_profile_change_logs
+             SET tool_name = 'update_preferred_name'
+             WHERE source = 'ai_tool' AND field_name = 'preferred_name';`
+          : ''
+      }
+
       CREATE INDEX IF NOT EXISTS idx_conversations_pinned_updated_at
         ON conversations(is_pinned DESC, updated_at DESC);
 
       CREATE INDEX IF NOT EXISTS idx_conversation_memories_conversation_time
         ON conversation_memories(conversation_id, created_time DESC);
+
+      CREATE INDEX IF NOT EXISTS idx_user_profile_change_logs_user_created
+        ON user_profile_change_logs(user_id, created_at DESC);
 
       CREATE UNIQUE INDEX IF NOT EXISTS idx_users_only_one_active
         ON users(is_active) WHERE is_active = 1;

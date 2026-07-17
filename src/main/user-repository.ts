@@ -1,4 +1,5 @@
 import { getDatabase } from './database'
+import { randomUUID } from 'node:crypto'
 
 export type UserGender = 'male' | 'female'
 
@@ -15,6 +16,20 @@ export interface CreateUserInput {
   gender: UserGender
   birthDate: string
   preferredName: string
+}
+
+export interface UpdatePreferredNameInput {
+  preferredName: string
+  source: 'ai_tool' | 'settings' | 'onboarding'
+  toolName?: string
+  conversationId?: string
+  toolCallId?: string
+}
+
+export interface UpdatePreferredNameResult {
+  previousPreferredName: string
+  preferredName: string
+  changed: boolean
 }
 
 interface UserRow {
@@ -79,5 +94,59 @@ export const createInitialUser = (input: CreateUserInput): ActiveUser => {
     gender: input.gender,
     birthDate,
     preferredName
+  }
+}
+
+export const updateActiveUserPreferredName = (
+  input: UpdatePreferredNameInput
+): UpdatePreferredNameResult => {
+  const preferredName = input.preferredName.trim()
+  if (!preferredName) throw new Error('称呼不能为空。')
+  if (Array.from(preferredName).length > 40) throw new Error('称呼不能超过 40 个字符。')
+
+  const user = requireActiveUser()
+  const changed = user.preferredName !== preferredName
+  const database = getDatabase()
+  const now = Date.now()
+
+  try {
+    database.exec('BEGIN IMMEDIATE;')
+    if (changed) {
+      database
+        .prepare('UPDATE users SET preferred_name = ?, updated_at = ? WHERE id = ?')
+        .run(preferredName, now, user.id)
+    }
+    database
+      .prepare(
+        `INSERT INTO user_profile_change_logs
+          (id, user_id, field_name, old_value, new_value, source, tool_name, conversation_id, tool_call_id, status, created_at)
+         VALUES (?, ?, 'preferred_name', ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        randomUUID(),
+        user.id,
+        user.preferredName,
+        preferredName,
+        input.source,
+        input.toolName ?? null,
+        input.conversationId ?? null,
+        input.toolCallId ?? null,
+        changed ? 'applied' : 'unchanged',
+        now
+      )
+    database.exec('COMMIT;')
+  } catch (error) {
+    try {
+      database.exec('ROLLBACK;')
+    } catch {
+      // The transaction may not have started yet.
+    }
+    throw error
+  }
+
+  return {
+    previousPreferredName: user.preferredName,
+    preferredName,
+    changed
   }
 }

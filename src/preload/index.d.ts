@@ -29,6 +29,12 @@ interface ChatMessagePage {
   hasMore: boolean
 }
 
+interface AiActivity {
+  type: 'generation' | 'tool'
+  label: string
+  toolName?: string
+}
+
 interface DatabaseLocation {
   directory: string
   databasePath: string
@@ -60,6 +66,7 @@ interface ChatApi {
   deleteConversation: (conversationId: string) => Promise<void>
   getMessagePage: (conversationId: string, beforeCursor?: number) => Promise<ChatMessagePage>
   onDelta: (callback: (text: string) => void) => () => void
+  onActivity: (callback: (activity: AiActivity) => void) => () => void
   onComplete: (callback: () => void) => () => void
   onError: (callback: (message: string) => void) => () => void
 }

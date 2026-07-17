@@ -16,12 +16,19 @@ export interface DisplayMessage {
   cursor?: number
 }
 
+export interface AiActivity {
+  type: 'generation' | 'tool'
+  label: string
+  toolName?: string
+}
+
 export const useChatStore = defineStore('chat', () => {
   const currentConversationId = ref<string>(crypto.randomUUID())
   const messages = ref<DisplayMessage[]>([])
   const conversations = ref<ConversationSummary[]>([])
   const isFollowingLatest = ref(true)
   const isSending = ref(false)
+  const activity = ref<AiActivity>()
   const isLoadingOlderMessages = ref(false)
   const hasMoreMessages = ref(false)
   const oldestMessageCursor = ref<number>()
@@ -39,6 +46,7 @@ export const useChatStore = defineStore('chat', () => {
     hasMoreMessages.value = false
     chatScrollTop.value = 0
     isFollowingLatest.value = true
+    activity.value = undefined
   }
 
   const startNewConversation = (): void => {
@@ -143,11 +151,16 @@ export const useChatStore = defineStore('chat', () => {
       const assistantMessage = messages.value.at(-1)
       if (assistantMessage?.role === 'assistant') assistantMessage.content += text
     })
+    window.api.chat.onActivity((nextActivity) => {
+      activity.value = nextActivity
+    })
     window.api.chat.onComplete(() => {
       isSending.value = false
+      activity.value = undefined
       void refreshConversations()
     })
     window.api.chat.onError((errorMessage) => {
+      activity.value = undefined
       const assistantMessage = messages.value.at(-1)
       if (assistantMessage?.role === 'assistant') assistantMessage.content = errorMessage
     })
@@ -156,6 +169,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   return {
+    activity,
     chatScrollTop,
     conversations,
     currentConversationId,

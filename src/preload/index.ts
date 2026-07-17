@@ -22,6 +22,12 @@ interface ChatMessagePage {
   hasMore: boolean
 }
 
+interface AiActivity {
+  type: 'generation' | 'tool'
+  label: string
+  toolName?: string
+}
+
 interface DatabaseLocation {
   directory: string
   databasePath: string
@@ -81,6 +87,14 @@ const api = {
       ipcRenderer.on('chat:delta', listener)
       return (): void => {
         ipcRenderer.removeListener('chat:delta', listener)
+      }
+    },
+    onActivity: (callback: (activity: AiActivity) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, activity: AiActivity): void =>
+        callback(activity)
+      ipcRenderer.on('chat:activity', listener)
+      return (): void => {
+        ipcRenderer.removeListener('chat:activity', listener)
       }
     },
     onComplete: (callback: () => void): (() => void) => {

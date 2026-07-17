@@ -22,6 +22,7 @@ const router = useRouter()
 const chatStore = useChatStore()
 const {
   chatScrollTop,
+  activity,
   conversations,
   currentConversationId,
   isFollowingLatest,
@@ -187,7 +188,7 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
         <article v-for="chatMessage in messages" :key="chatMessage.id" :class="chatMessage.role">
           <span v-if="chatMessage.content">{{ chatMessage.content }}</span>
           <span v-else-if="chatMessage.role === 'assistant' && isSending" class="thinking">
-            小可努力思考中<span class="thinking__dots">...</span>
+            {{ activity?.label ?? '小可正在思考' }}<span class="thinking__dots">...</span>
           </span>
         </article>
       </div>

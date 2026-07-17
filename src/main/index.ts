@@ -30,7 +30,8 @@ import { createInitialUser, getActiveUser, type CreateUserInput } from './user-r
 const streamChat = async (sender: Electron.WebContents, conversationId: string): Promise<void> => {
   try {
     await streamDialogue(conversationId, {
-      onDelta: (text) => sender.send('chat:delta', text)
+      onDelta: (text) => sender.send('chat:delta', text),
+      onActivity: (activity) => sender.send('chat:activity', activity)
     })
     sender.send('chat:complete')
   } catch (error) {
