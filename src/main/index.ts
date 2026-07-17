@@ -9,8 +9,6 @@ import {
   type OpenDialogOptions
 } from 'electron'
 import { join } from 'path'
-import { streamText, type ModelMessage } from 'ai'
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import {
@@ -22,43 +20,18 @@ import {
 import {
   deleteConversation,
   getConversationMessagePage,
-  getConversationMessagesForModel,
   listConversations,
-  saveAssistantMessage,
   saveUserMessage,
   toggleConversationPinned
 } from './conversation-repository'
+import { streamDialogue } from './ai/dialogue-service'
 import { createInitialUser, getActiveUser, type CreateUserInput } from './user-repository'
 
-const chatProvider = createOpenAICompatible({
-  name: 'liangrekui',
-  baseURL: 'https://api.liangrekui.com/v1',
-  apiKey: process.env.NEW_API_KEY
-})
-
 const streamChat = async (sender: Electron.WebContents, conversationId: string): Promise<void> => {
-  if (!process.env.NEW_API_KEY) {
-    throw new Error('未配置 AI API Key，请在 .env 中设置 NEW_API_KEY。')
-  }
-
-  const modelMessages: ModelMessage[] = getConversationMessagesForModel(conversationId).map(
-    (message) => ({
-      role: message.role,
-      content: message.content
-    })
-  )
-
   try {
-    const result = streamText({
-      model: chatProvider('gpt-5.4'),
-      messages: modelMessages
+    await streamDialogue(conversationId, {
+      onDelta: (text) => sender.send('chat:delta', text)
     })
-    let response = ''
-    for await (const text of result.textStream) {
-      response += text
-      sender.send('chat:delta', text)
-    }
-    saveAssistantMessage(conversationId, response)
     sender.send('chat:complete')
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'AI 响应失败，请稍后重试。'
