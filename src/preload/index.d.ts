@@ -9,15 +9,45 @@ interface WindowControls {
 }
 
 interface ChatMessage {
+  id: string
   role: 'user' | 'assistant'
   content: string
+  createdTime: string
+  cursor: number
+}
+
+interface ConversationSummary {
+  id: string
+  title: string
+  conversationDate: string
+  createdTime: string
+}
+
+interface ChatMessagePage {
+  messages: ChatMessage[]
+  hasMore: boolean
+}
+
+interface DatabaseLocation {
+  directory: string
+  databasePath: string
+  isDefault: boolean
 }
 
 interface ChatApi {
-  send: (messages: ChatMessage[]) => Promise<void>
+  saveUserMessage: (conversationId: string, content: string) => Promise<ChatMessage>
+  send: (conversationId: string) => Promise<void>
+  listConversations: () => Promise<ConversationSummary[]>
+  getMessagePage: (conversationId: string, beforeCursor?: number) => Promise<ChatMessagePage>
   onDelta: (callback: (text: string) => void) => () => void
   onComplete: (callback: () => void) => () => void
   onError: (callback: (message: string) => void) => () => void
+}
+
+interface SettingsApi {
+  getDatabaseLocation: () => Promise<DatabaseLocation>
+  chooseDatabaseDirectory: () => Promise<string | undefined>
+  migrateDatabaseDirectory: (targetDirectory: string) => Promise<DatabaseLocation | undefined>
 }
 
 declare global {
@@ -26,6 +56,7 @@ declare global {
     api: {
       windowControls: WindowControls
       chat: ChatApi
+      settings: SettingsApi
     }
   }
 }

@@ -3,15 +3,33 @@ import { ArrowUp, LayoutGrid, Menu, Plus, Settings, Zap } from 'lucide-vue-next'
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+interface ConversationSummary {
+  id: string
+  title: string
+  conversationDate: string
+  createdTime: string
+}
+
+interface DisplayMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  cursor?: number
+}
+
 const message = ref('')
 const isDrawerOpen = ref(false)
 const isSending = ref(false)
+const isLoadingOlderMessages = ref(false)
 const maxComposerHeight = 180
-const historyMessages = ['欢迎使用小可', '新对话']
 const router = useRouter()
-const messages = ref<{ role: 'user' | 'assistant'; content: string }[]>([])
+const currentConversationId = ref<string>(crypto.randomUUID())
+const messages = ref<DisplayMessage[]>([])
+const conversations = ref<ConversationSummary[]>([])
 const chatArea = ref<HTMLElement>()
 const isFollowingLatest = ref(true)
+const hasMoreMessages = ref(false)
+const oldestMessageCursor = ref<number>()
 let removeDeltaListener: (() => void) | undefined
 let removeCompleteListener: (() => void) | undefined
 let removeErrorListener: (() => void) | undefined
@@ -35,18 +53,92 @@ const updateScrollFollowState = (event: Event): void => {
   const distanceFromBottom =
     chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight
   isFollowingLatest.value = distanceFromBottom < 24
+
+  if (chatContainer.scrollTop < 32) void loadOlderMessages()
+}
+
+const refreshConversations = async (): Promise<void> => {
+  conversations.value = await window.api.chat.listConversations()
+}
+
+const startNewConversation = (): void => {
+  if (isSending.value) return
+
+  currentConversationId.value = crypto.randomUUID()
+  messages.value = []
+  oldestMessageCursor.value = undefined
+  hasMoreMessages.value = false
+  isFollowingLatest.value = true
+  isDrawerOpen.value = false
+}
+
+const loadConversation = async (conversationId: string): Promise<void> => {
+  if (isSending.value || conversationId === currentConversationId.value) {
+    isDrawerOpen.value = false
+    return
+  }
+
+  const page = await window.api.chat.getMessagePage(conversationId)
+  currentConversationId.value = conversationId
+  messages.value = page.messages.map((chatMessage) => ({
+    id: chatMessage.id,
+    role: chatMessage.role,
+    content: chatMessage.content,
+    cursor: chatMessage.cursor
+  }))
+  oldestMessageCursor.value = page.messages.at(0)?.cursor
+  hasMoreMessages.value = page.hasMore
+  isFollowingLatest.value = true
+  isDrawerOpen.value = false
+  await scrollToLatestMessage(true)
+}
+
+const loadOlderMessages = async (): Promise<void> => {
+  if (
+    isLoadingOlderMessages.value ||
+    !hasMoreMessages.value ||
+    oldestMessageCursor.value === undefined
+  ) {
+    return
+  }
+
+  const conversationId = currentConversationId.value
+  const chatContainer = chatArea.value
+  const previousScrollHeight = chatContainer?.scrollHeight ?? 0
+  isLoadingOlderMessages.value = true
+
+  try {
+    const page = await window.api.chat.getMessagePage(conversationId, oldestMessageCursor.value)
+    if (conversationId !== currentConversationId.value) return
+
+    const olderMessages = page.messages.map((chatMessage) => ({
+      id: chatMessage.id,
+      role: chatMessage.role,
+      content: chatMessage.content,
+      cursor: chatMessage.cursor
+    }))
+    messages.value = [...olderMessages, ...messages.value]
+    oldestMessageCursor.value = messages.value.at(0)?.cursor
+    hasMoreMessages.value = page.hasMore
+    await nextTick()
+
+    if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight - previousScrollHeight
+  } finally {
+    isLoadingOlderMessages.value = false
+  }
 }
 
 const sendMessage = async (): Promise<void> => {
   const content = message.value.trim()
   if (!content || isSending.value) return
 
-  messages.value.push({ role: 'user', content })
-  const conversation = messages.value.map(({ role, content: messageContent }) => ({
-    role,
-    content: messageContent
-  }))
-  const assistantMessage = { role: 'assistant' as const, content: '' }
+  const userMessage: DisplayMessage = { id: crypto.randomUUID(), role: 'user', content }
+  const assistantMessage: DisplayMessage = {
+    id: crypto.randomUUID(),
+    role: 'assistant',
+    content: ''
+  }
+  messages.value.push(userMessage)
   messages.value.push(assistantMessage)
   message.value = ''
   isSending.value = true
@@ -55,7 +147,15 @@ const sendMessage = async (): Promise<void> => {
   await scrollToLatestMessage(true)
 
   try {
-    await window.api.chat.send(conversation)
+    const savedUserMessage = await window.api.chat.saveUserMessage(
+      currentConversationId.value,
+      content
+    )
+    userMessage.id = savedUserMessage.id
+    userMessage.cursor = savedUserMessage.cursor
+    oldestMessageCursor.value ??= savedUserMessage.cursor
+    await refreshConversations()
+    await window.api.chat.send(currentConversationId.value)
   } catch (error) {
     assistantMessage.content = error instanceof Error ? error.message : '发送失败，请稍后重试。'
   } finally {
@@ -73,6 +173,7 @@ const resizeComposer = (event: Event): void => {
 }
 
 onMounted(() => {
+  void refreshConversations()
   removeDeltaListener = window.api.chat.onDelta((text) => {
     const assistantMessage = messages.value.at(-1)
     if (assistantMessage?.role === 'assistant') assistantMessage.content += text
@@ -80,6 +181,7 @@ onMounted(() => {
   })
   removeCompleteListener = window.api.chat.onComplete(() => {
     isSending.value = false
+    void refreshConversations()
   })
   removeErrorListener = window.api.chat.onError((errorMessage) => {
     const assistantMessage = messages.value.at(-1)
@@ -108,7 +210,7 @@ onUnmounted(() => {
         </button>
       </div>
       <div class="console__actions">
-        <button class="new-chat-button" type="button">
+        <button class="new-chat-button" type="button" @click="startNewConversation">
           <Plus :size="17" :stroke-width="2" />
           新对话
         </button>
@@ -137,7 +239,8 @@ onUnmounted(() => {
         <p>有什么可以帮你的？</p>
       </div>
       <div v-else class="messages">
-        <article v-for="(chatMessage, index) in messages" :key="index" :class="chatMessage.role">
+        <p v-if="isLoadingOlderMessages" class="loading-older">正在加载更早的消息…</p>
+        <article v-for="chatMessage in messages" :key="chatMessage.id" :class="chatMessage.role">
           <span v-if="chatMessage.content">{{ chatMessage.content }}</span>
           <span v-else-if="chatMessage.role === 'assistant' && isSending" class="thinking">
             小可努力思考中<span class="thinking__dots">...</span>
@@ -176,8 +279,14 @@ onUnmounted(() => {
         <div class="history-drawer__content">
           <h2>历史消息</h2>
           <ul>
-            <li v-for="historyMessage in historyMessages" :key="historyMessage">
-              <button type="button">{{ historyMessage }}</button>
+            <li v-for="conversation in conversations" :key="conversation.id">
+              <button
+                :class="{ active: conversation.id === currentConversationId }"
+                type="button"
+                @click="loadConversation(conversation.id)"
+              >
+                {{ conversation.title }}
+              </button>
             </li>
           </ul>
         </div>

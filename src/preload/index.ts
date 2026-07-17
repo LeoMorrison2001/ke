@@ -1,6 +1,32 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
+interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  createdTime: string
+  cursor: number
+}
+
+interface ConversationSummary {
+  id: string
+  title: string
+  conversationDate: string
+  createdTime: string
+}
+
+interface ChatMessagePage {
+  messages: ChatMessage[]
+  hasMore: boolean
+}
+
+interface DatabaseLocation {
+  directory: string
+  databasePath: string
+  isDefault: boolean
+}
+
 // Custom APIs for renderer
 const api = {
   windowControls: {
@@ -20,8 +46,14 @@ const api = {
     }
   },
   chat: {
-    send: (messages: { role: 'user' | 'assistant'; content: string }[]): Promise<void> =>
-      ipcRenderer.invoke('chat:send', messages),
+    saveUserMessage: (conversationId: string, content: string): Promise<ChatMessage> =>
+      ipcRenderer.invoke('chat:save-user-message', conversationId, content),
+    send: (conversationId: string): Promise<void> =>
+      ipcRenderer.invoke('chat:send', conversationId),
+    listConversations: (): Promise<ConversationSummary[]> =>
+      ipcRenderer.invoke('chat:list-conversations'),
+    getMessagePage: (conversationId: string, beforeCursor?: number): Promise<ChatMessagePage> =>
+      ipcRenderer.invoke('chat:get-message-page', conversationId, beforeCursor),
     onDelta: (callback: (text: string) => void): (() => void) => {
       const listener = (_event: Electron.IpcRendererEvent, text: string): void => callback(text)
       ipcRenderer.on('chat:delta', listener)
@@ -44,6 +76,14 @@ const api = {
         ipcRenderer.removeListener('chat:error', listener)
       }
     }
+  },
+  settings: {
+    getDatabaseLocation: (): Promise<DatabaseLocation> =>
+      ipcRenderer.invoke('settings:get-database-location'),
+    chooseDatabaseDirectory: (): Promise<string | undefined> =>
+      ipcRenderer.invoke('settings:choose-database-directory'),
+    migrateDatabaseDirectory: (targetDirectory: string): Promise<DatabaseLocation | undefined> =>
+      ipcRenderer.invoke('settings:migrate-database-directory', targetDirectory)
   }
 }
 
