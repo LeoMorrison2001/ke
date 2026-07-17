@@ -1,13 +1,67 @@
 <script setup lang="ts">
 import { ArrowUp, LayoutGrid, Menu, Plus, Settings, Zap } from 'lucide-vue-next'
-import { ref } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const message = ref('')
 const isDrawerOpen = ref(false)
+const isSending = ref(false)
 const maxComposerHeight = 180
 const historyMessages = ['欢迎使用小可', '新对话']
 const router = useRouter()
+const messages = ref<{ role: 'user' | 'assistant'; content: string }[]>([])
+const chatArea = ref<HTMLElement>()
+const isFollowingLatest = ref(true)
+let removeDeltaListener: (() => void) | undefined
+let removeCompleteListener: (() => void) | undefined
+let removeErrorListener: (() => void) | undefined
+
+const resetComposer = async (): Promise<void> => {
+  await nextTick()
+  const textarea = document.querySelector<HTMLTextAreaElement>('.composer textarea')
+  if (textarea) textarea.style.height = ''
+}
+
+const scrollToLatestMessage = async (force = false): Promise<void> => {
+  if (!force && !isFollowingLatest.value) return
+
+  await nextTick()
+  const chatContainer = chatArea.value
+  if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight
+}
+
+const updateScrollFollowState = (event: Event): void => {
+  const chatContainer = event.currentTarget as HTMLElement
+  const distanceFromBottom =
+    chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight
+  isFollowingLatest.value = distanceFromBottom < 24
+}
+
+const sendMessage = async (): Promise<void> => {
+  const content = message.value.trim()
+  if (!content || isSending.value) return
+
+  messages.value.push({ role: 'user', content })
+  const conversation = messages.value.map(({ role, content: messageContent }) => ({
+    role,
+    content: messageContent
+  }))
+  const assistantMessage = { role: 'assistant' as const, content: '' }
+  messages.value.push(assistantMessage)
+  message.value = ''
+  isSending.value = true
+  await resetComposer()
+  isFollowingLatest.value = true
+  await scrollToLatestMessage(true)
+
+  try {
+    await window.api.chat.send(conversation)
+  } catch (error) {
+    assistantMessage.content = error instanceof Error ? error.message : '发送失败，请稍后重试。'
+  } finally {
+    isSending.value = false
+  }
+}
 
 const resizeComposer = (event: Event): void => {
   const textarea = event.target as HTMLTextAreaElement
@@ -17,6 +71,27 @@ const resizeComposer = (event: Event): void => {
   textarea.style.height = `${nextHeight}px`
   textarea.style.overflowY = textarea.scrollHeight > maxComposerHeight ? 'auto' : 'hidden'
 }
+
+onMounted(() => {
+  removeDeltaListener = window.api.chat.onDelta((text) => {
+    const assistantMessage = messages.value.at(-1)
+    if (assistantMessage?.role === 'assistant') assistantMessage.content += text
+    void scrollToLatestMessage()
+  })
+  removeCompleteListener = window.api.chat.onComplete(() => {
+    isSending.value = false
+  })
+  removeErrorListener = window.api.chat.onError((errorMessage) => {
+    const assistantMessage = messages.value.at(-1)
+    if (assistantMessage?.role === 'assistant') assistantMessage.content = errorMessage
+  })
+})
+
+onUnmounted(() => {
+  removeDeltaListener?.()
+  removeCompleteListener?.()
+  removeErrorListener?.()
+})
 </script>
 
 <template>
@@ -56,10 +131,18 @@ const resizeComposer = (event: Event): void => {
       </div>
     </header>
 
-    <main class="chat-area">
-      <div class="chat-empty">
+    <main ref="chatArea" class="chat-area" @scroll="updateScrollFollowState">
+      <div v-if="messages.length === 0" class="chat-empty">
         <Zap :size="24" :stroke-width="1.8" />
         <p>有什么可以帮你的？</p>
+      </div>
+      <div v-else class="messages">
+        <article v-for="(chatMessage, index) in messages" :key="index" :class="chatMessage.role">
+          <span v-if="chatMessage.content">{{ chatMessage.content }}</span>
+          <span v-else-if="chatMessage.role === 'assistant' && isSending" class="thinking">
+            小可努力思考中<span class="thinking__dots">...</span>
+          </span>
+        </article>
       </div>
     </main>
 
@@ -71,9 +154,16 @@ const resizeComposer = (event: Event): void => {
           placeholder="给我发送消息..."
           rows="1"
           @input="resizeComposer"
+          @keydown.enter.exact.prevent="sendMessage"
         ></textarea>
         <div class="composer__actions">
-          <button aria-label="发送消息" class="send-button" type="button">
+          <button
+            :disabled="!message.trim() || isSending"
+            aria-label="发送消息"
+            class="send-button"
+            type="button"
+            @click="sendMessage"
+          >
             <ArrowUp :size="18" :stroke-width="2.2" />
           </button>
         </div>
@@ -241,9 +331,81 @@ li button:hover {
 
 .chat-area {
   display: grid;
+  box-sizing: border-box;
   min-height: 0;
   padding: 24px;
+  overflow-y: auto;
   place-items: center;
+}
+
+.chat-area::-webkit-scrollbar {
+  width: 5px;
+}
+
+.chat-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-area::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #a9a9a9;
+}
+
+.chat-area::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.messages {
+  display: flex;
+  width: 82%;
+  height: 100%;
+  min-width: 0;
+  gap: 14px;
+  flex-direction: column;
+  align-self: start;
+}
+
+.messages article {
+  max-width: 78%;
+  padding: 10px 13px;
+  white-space: pre-wrap;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.messages .user {
+  align-self: flex-end;
+  background: #eaf4fe;
+}
+
+.messages .assistant {
+  align-self: flex-start;
+  background: #f4f4f4;
+}
+
+.thinking {
+  color: #777;
+}
+
+.thinking__dots {
+  display: inline-block;
+  width: 16px;
+  overflow: hidden;
+  vertical-align: bottom;
+  animation: thinking-dots 1.2s steps(4, end) infinite;
+}
+
+@keyframes thinking-dots {
+  from {
+    width: 0;
+  }
+
+  to {
+    width: 16px;
+  }
 }
 
 .chat-empty {
@@ -309,6 +471,8 @@ textarea::-webkit-scrollbar-thumb {
 
 textarea::-webkit-scrollbar-button {
   display: none;
+  width: 0;
+  height: 0;
 }
 
 .composer__actions {
@@ -341,5 +505,10 @@ button {
 
 .send-button:hover {
   background: #6eb5ee;
+}
+
+.send-button:disabled {
+  cursor: not-allowed;
+  background: #d2d2d2;
 }
 </style>

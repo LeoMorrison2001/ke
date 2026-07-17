@@ -1,7 +1,49 @@
+import 'dotenv/config'
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
+import { streamText, type ModelMessage } from 'ai'
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+
+interface ChatRequestMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+const chatProvider = createOpenAICompatible({
+  name: 'liangrekui',
+  baseURL: 'https://api.liangrekui.com/v1',
+  apiKey: process.env.NEW_API_KEY
+})
+
+const streamChat = async (
+  sender: Electron.WebContents,
+  messages: ChatRequestMessage[]
+): Promise<void> => {
+  if (!process.env.NEW_API_KEY) {
+    throw new Error('未配置 AI API Key，请在 .env 中设置 NEW_API_KEY。')
+  }
+
+  const modelMessages: ModelMessage[] = messages.map((message) => ({
+    role: message.role,
+    content: message.content
+  }))
+  const result = streamText({
+    model: chatProvider('gpt-5.4'),
+    messages: modelMessages
+  })
+
+  try {
+    for await (const text of result.textStream) {
+      sender.send('chat:delta', text)
+    }
+    sender.send('chat:complete')
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'AI 响应失败，请稍后重试。'
+    sender.send('chat:error', errorMessage)
+  }
+}
 
 function createWindow(): void {
   // Create the browser window.
@@ -81,6 +123,10 @@ app.whenReady().then(() => {
 
   ipcMain.handle('window:is-maximized', (event) => {
     return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false
+  })
+
+  ipcMain.handle('chat:send', (event, messages: ChatRequestMessage[]) => {
+    return streamChat(event.sender, messages)
   })
 
   createWindow()

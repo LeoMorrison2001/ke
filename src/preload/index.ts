@@ -18,6 +18,32 @@ const api = {
         ipcRenderer.removeListener('window:maximize-state-changed', listener)
       }
     }
+  },
+  chat: {
+    send: (messages: { role: 'user' | 'assistant'; content: string }[]): Promise<void> =>
+      ipcRenderer.invoke('chat:send', messages),
+    onDelta: (callback: (text: string) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, text: string): void => callback(text)
+      ipcRenderer.on('chat:delta', listener)
+      return (): void => {
+        ipcRenderer.removeListener('chat:delta', listener)
+      }
+    },
+    onComplete: (callback: () => void): (() => void) => {
+      const listener = (): void => callback()
+      ipcRenderer.on('chat:complete', listener)
+      return (): void => {
+        ipcRenderer.removeListener('chat:complete', listener)
+      }
+    },
+    onError: (callback: (message: string) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, message: string): void =>
+        callback(message)
+      ipcRenderer.on('chat:error', listener)
+      return (): void => {
+        ipcRenderer.removeListener('chat:error', listener)
+      }
+    }
   }
 }
 
