@@ -14,6 +14,7 @@ interface ConversationSummary {
   title: string
   conversationDate: string
   createdTime: string
+  isPinned: boolean
 }
 
 interface ChatMessagePage {
@@ -52,6 +53,10 @@ const api = {
       ipcRenderer.invoke('chat:send', conversationId),
     listConversations: (): Promise<ConversationSummary[]> =>
       ipcRenderer.invoke('chat:list-conversations'),
+    toggleConversationPinned: (conversationId: string): Promise<void> =>
+      ipcRenderer.invoke('chat:toggle-conversation-pinned', conversationId),
+    deleteConversation: (conversationId: string): Promise<void> =>
+      ipcRenderer.invoke('chat:delete-conversation', conversationId),
     getMessagePage: (conversationId: string, beforeCursor?: number): Promise<ChatMessagePage> =>
       ipcRenderer.invoke('chat:get-message-page', conversationId, beforeCursor),
     onDelta: (callback: (text: string) => void): (() => void) => {

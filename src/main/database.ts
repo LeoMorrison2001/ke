@@ -13,7 +13,7 @@ import { app } from 'electron'
 
 const DATABASE_DIRECTORY_NAME = 'data'
 const DATABASE_FILE_NAME = 'ke.sqlite'
-const DATABASE_SCHEMA_VERSION = 1
+const DATABASE_SCHEMA_VERSION = 2
 const STORAGE_SETTINGS_FILE_NAME = 'storage-settings.json'
 
 let database: DatabaseSync | undefined
@@ -43,7 +43,8 @@ const applySchema = (connection: DatabaseSync): void => {
         title TEXT NOT NULL DEFAULT '',
         conversation_date TEXT NOT NULL,
         created_time TEXT NOT NULL,
-        updated_at INTEGER NOT NULL
+        updated_at INTEGER NOT NULL,
+        is_pinned INTEGER NOT NULL DEFAULT 0
       );
 
       CREATE TABLE IF NOT EXISTS conversation_memories (
@@ -58,6 +59,15 @@ const applySchema = (connection: DatabaseSync): void => {
 
       CREATE INDEX IF NOT EXISTS idx_conversations_updated_at
         ON conversations(updated_at DESC);
+
+      ${
+        currentVersion.user_version >= 1
+          ? 'ALTER TABLE conversations ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0;'
+          : ''
+      }
+
+      CREATE INDEX IF NOT EXISTS idx_conversations_pinned_updated_at
+        ON conversations(is_pinned DESC, updated_at DESC);
 
       CREATE INDEX IF NOT EXISTS idx_conversation_memories_conversation_time
         ON conversation_memories(conversation_id, created_time DESC);

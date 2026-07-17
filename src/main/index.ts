@@ -20,11 +20,13 @@ import {
   migrateDatabaseDirectory
 } from './database'
 import {
+  deleteConversation,
   getConversationMessagePage,
   getConversationMessagesForModel,
   listConversations,
   saveAssistantMessage,
-  saveUserMessage
+  saveUserMessage,
+  toggleConversationPinned
 } from './conversation-repository'
 
 const chatProvider = createOpenAICompatible({
@@ -154,6 +156,14 @@ app.whenReady().then(() => {
 
   ipcMain.handle('chat:list-conversations', () => {
     return listConversations()
+  })
+
+  ipcMain.handle('chat:toggle-conversation-pinned', (_event, conversationId: string) => {
+    return toggleConversationPinned(conversationId)
+  })
+
+  ipcMain.handle('chat:delete-conversation', (_event, conversationId: string) => {
+    return deleteConversation(conversationId)
   })
 
   ipcMain.handle(

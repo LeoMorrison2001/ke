@@ -21,6 +21,7 @@ interface ConversationSummary {
   title: string
   conversationDate: string
   createdTime: string
+  isPinned: boolean
 }
 
 interface ChatMessagePage {
@@ -38,6 +39,8 @@ interface ChatApi {
   saveUserMessage: (conversationId: string, content: string) => Promise<ChatMessage>
   send: (conversationId: string) => Promise<void>
   listConversations: () => Promise<ConversationSummary[]>
+  toggleConversationPinned: (conversationId: string) => Promise<void>
+  deleteConversation: (conversationId: string) => Promise<void>
   getMessagePage: (conversationId: string, beforeCursor?: number) => Promise<ChatMessagePage>
   onDelta: (callback: (text: string) => void) => () => void
   onComplete: (callback: () => void) => () => void

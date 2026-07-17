@@ -1,38 +1,36 @@
 <script setup lang="ts">
-import { ArrowUp, LayoutGrid, Menu, Plus, Settings, Zap } from 'lucide-vue-next'
-import { nextTick, onMounted, onUnmounted, ref } from 'vue'
+import {
+  ArrowUp,
+  LayoutGrid,
+  Menu,
+  Pin,
+  PinOff,
+  Plus,
+  Settings,
+  Trash2,
+  Zap
+} from 'lucide-vue-next'
+import { nextTick, onMounted, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-
-interface ConversationSummary {
-  id: string
-  title: string
-  conversationDate: string
-  createdTime: string
-}
-
-interface DisplayMessage {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  cursor?: number
-}
+import { type ConversationSummary, useChatStore } from '../stores/chat'
 
 const message = ref('')
 const isDrawerOpen = ref(false)
-const isSending = ref(false)
-const isLoadingOlderMessages = ref(false)
 const maxComposerHeight = 180
 const router = useRouter()
-const currentConversationId = ref<string>(crypto.randomUUID())
-const messages = ref<DisplayMessage[]>([])
-const conversations = ref<ConversationSummary[]>([])
+const chatStore = useChatStore()
+const {
+  chatScrollTop,
+  conversations,
+  currentConversationId,
+  isFollowingLatest,
+  isLoadingOlderMessages,
+  isSending,
+  messages
+} = storeToRefs(chatStore)
+const conversationPendingDeletion = ref<ConversationSummary>()
 const chatArea = ref<HTMLElement>()
-const isFollowingLatest = ref(true)
-const hasMoreMessages = ref(false)
-const oldestMessageCursor = ref<number>()
-let removeDeltaListener: (() => void) | undefined
-let removeCompleteListener: (() => void) | undefined
-let removeErrorListener: (() => void) | undefined
 
 const resetComposer = async (): Promise<void> => {
   await nextTick()
@@ -45,7 +43,10 @@ const scrollToLatestMessage = async (force = false): Promise<void> => {
 
   await nextTick()
   const chatContainer = chatArea.value
-  if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight
+  if (chatContainer) {
+    chatContainer.scrollTop = chatContainer.scrollHeight
+    chatStore.setChatScrollTop(chatContainer.scrollTop)
+  }
 }
 
 const updateScrollFollowState = (event: Event): void => {
@@ -53,114 +54,70 @@ const updateScrollFollowState = (event: Event): void => {
   const distanceFromBottom =
     chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight
   isFollowingLatest.value = distanceFromBottom < 24
+  chatStore.setChatScrollTop(chatContainer.scrollTop)
 
   if (chatContainer.scrollTop < 32) void loadOlderMessages()
-}
-
-const refreshConversations = async (): Promise<void> => {
-  conversations.value = await window.api.chat.listConversations()
 }
 
 const startNewConversation = (): void => {
   if (isSending.value) return
 
-  currentConversationId.value = crypto.randomUUID()
-  messages.value = []
-  oldestMessageCursor.value = undefined
-  hasMoreMessages.value = false
-  isFollowingLatest.value = true
+  chatStore.startNewConversation()
   isDrawerOpen.value = false
 }
 
 const loadConversation = async (conversationId: string): Promise<void> => {
-  if (isSending.value || conversationId === currentConversationId.value) {
-    isDrawerOpen.value = false
-    return
-  }
-
-  const page = await window.api.chat.getMessagePage(conversationId)
-  currentConversationId.value = conversationId
-  messages.value = page.messages.map((chatMessage) => ({
-    id: chatMessage.id,
-    role: chatMessage.role,
-    content: chatMessage.content,
-    cursor: chatMessage.cursor
-  }))
-  oldestMessageCursor.value = page.messages.at(0)?.cursor
-  hasMoreMessages.value = page.hasMore
+  const opened = await chatStore.openConversation(conversationId)
   isFollowingLatest.value = true
   isDrawerOpen.value = false
-  await scrollToLatestMessage(true)
+  if (opened) await scrollToLatestMessage(true)
 }
 
 const loadOlderMessages = async (): Promise<void> => {
-  if (
-    isLoadingOlderMessages.value ||
-    !hasMoreMessages.value ||
-    oldestMessageCursor.value === undefined
-  ) {
-    return
-  }
-
-  const conversationId = currentConversationId.value
   const chatContainer = chatArea.value
   const previousScrollHeight = chatContainer?.scrollHeight ?? 0
-  isLoadingOlderMessages.value = true
+  const loaded = await chatStore.loadOlderMessages()
+  if (!loaded) return
 
-  try {
-    const page = await window.api.chat.getMessagePage(conversationId, oldestMessageCursor.value)
-    if (conversationId !== currentConversationId.value) return
-
-    const olderMessages = page.messages.map((chatMessage) => ({
-      id: chatMessage.id,
-      role: chatMessage.role,
-      content: chatMessage.content,
-      cursor: chatMessage.cursor
-    }))
-    messages.value = [...olderMessages, ...messages.value]
-    oldestMessageCursor.value = messages.value.at(0)?.cursor
-    hasMoreMessages.value = page.hasMore
-    await nextTick()
-
-    if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight - previousScrollHeight
-  } finally {
-    isLoadingOlderMessages.value = false
+  await nextTick()
+  if (chatContainer) {
+    chatContainer.scrollTop = chatContainer.scrollHeight - previousScrollHeight
+    chatStore.setChatScrollTop(chatContainer.scrollTop)
   }
+}
+
+const togglePinnedConversation = async (conversationId: string): Promise<void> => {
+  await chatStore.togglePinnedConversation(conversationId)
+}
+
+const requestConversationDeletion = (conversation: ConversationSummary): void => {
+  if (isSending.value) return
+  conversationPendingDeletion.value = conversation
+}
+
+const cancelConversationDeletion = (): void => {
+  conversationPendingDeletion.value = undefined
+}
+
+const confirmConversationDeletion = async (): Promise<void> => {
+  const conversation = conversationPendingDeletion.value
+  if (!conversation || isSending.value) return
+
+  await chatStore.deleteConversation(conversation.id)
+  isFollowingLatest.value = true
+  conversationPendingDeletion.value = undefined
 }
 
 const sendMessage = async (): Promise<void> => {
   const content = message.value.trim()
   if (!content || isSending.value) return
 
-  const userMessage: DisplayMessage = { id: crypto.randomUUID(), role: 'user', content }
-  const assistantMessage: DisplayMessage = {
-    id: crypto.randomUUID(),
-    role: 'assistant',
-    content: ''
-  }
-  messages.value.push(userMessage)
-  messages.value.push(assistantMessage)
+  const sending = chatStore.sendMessage(content)
   message.value = ''
-  isSending.value = true
   await resetComposer()
   isFollowingLatest.value = true
   await scrollToLatestMessage(true)
-
-  try {
-    const savedUserMessage = await window.api.chat.saveUserMessage(
-      currentConversationId.value,
-      content
-    )
-    userMessage.id = savedUserMessage.id
-    userMessage.cursor = savedUserMessage.cursor
-    oldestMessageCursor.value ??= savedUserMessage.cursor
-    await refreshConversations()
-    await window.api.chat.send(currentConversationId.value)
-  } catch (error) {
-    assistantMessage.content = error instanceof Error ? error.message : '发送失败，请稍后重试。'
-  } finally {
-    isSending.value = false
-  }
+  await sending
 }
 
 const resizeComposer = (event: Event): void => {
@@ -173,27 +130,14 @@ const resizeComposer = (event: Event): void => {
 }
 
 onMounted(() => {
-  void refreshConversations()
-  removeDeltaListener = window.api.chat.onDelta((text) => {
-    const assistantMessage = messages.value.at(-1)
-    if (assistantMessage?.role === 'assistant') assistantMessage.content += text
-    void scrollToLatestMessage()
-  })
-  removeCompleteListener = window.api.chat.onComplete(() => {
-    isSending.value = false
-    void refreshConversations()
-  })
-  removeErrorListener = window.api.chat.onError((errorMessage) => {
-    const assistantMessage = messages.value.at(-1)
-    if (assistantMessage?.role === 'assistant') assistantMessage.content = errorMessage
+  void chatStore.initialize()
+  void nextTick(() => {
+    const chatContainer = chatArea.value
+    if (chatContainer) chatContainer.scrollTop = chatScrollTop.value
   })
 })
 
-onUnmounted(() => {
-  removeDeltaListener?.()
-  removeCompleteListener?.()
-  removeErrorListener?.()
-})
+watch(messages, () => void scrollToLatestMessage(), { deep: true })
 </script>
 
 <template>
@@ -279,19 +223,66 @@ onUnmounted(() => {
         <div class="history-drawer__content">
           <h2>历史消息</h2>
           <ul>
-            <li v-for="conversation in conversations" :key="conversation.id">
+            <li
+              v-for="conversation in conversations"
+              :key="conversation.id"
+              class="history-list-item"
+            >
               <button
-                :class="{ active: conversation.id === currentConversationId }"
+                :class="['history-item', { active: conversation.id === currentConversationId }]"
                 type="button"
                 @click="loadConversation(conversation.id)"
               >
                 {{ conversation.title }}
               </button>
+              <div class="history-actions">
+                <button
+                  :aria-label="conversation.isPinned ? '取消置顶' : '置顶'"
+                  :class="['history-action', { pinned: conversation.isPinned }]"
+                  :disabled="isSending"
+                  type="button"
+                  @click="togglePinnedConversation(conversation.id)"
+                >
+                  <PinOff v-if="conversation.isPinned" :size="15" :stroke-width="1.8" />
+                  <Pin v-else :size="15" :stroke-width="1.8" />
+                </button>
+                <button
+                  aria-label="删除对话"
+                  class="history-action delete"
+                  :disabled="isSending"
+                  type="button"
+                  @click="requestConversationDeletion(conversation)"
+                >
+                  <Trash2 :size="15" :stroke-width="1.8" />
+                </button>
+              </div>
             </li>
           </ul>
         </div>
       </aside>
     </Transition>
+
+    <div
+      v-if="conversationPendingDeletion"
+      class="modal-backdrop"
+      @click.self="cancelConversationDeletion"
+    >
+      <section
+        aria-modal="true"
+        class="delete-dialog"
+        role="dialog"
+        aria-labelledby="delete-dialog-title"
+      >
+        <h3 id="delete-dialog-title">删除对话？</h3>
+        <p>“{{ conversationPendingDeletion.title }}”及其中全部消息将被永久删除。</p>
+        <div class="delete-dialog__actions">
+          <button type="button" @click="cancelConversationDeletion">取消</button>
+          <button class="delete-dialog__confirm" type="button" @click="confirmConversationDeletion">
+            删除
+          </button>
+        </div>
+      </section>
+    </div>
   </section>
 </template>
 
@@ -395,15 +386,15 @@ onUnmounted(() => {
 }
 
 .history-drawer__content {
-  padding: 18px 12px;
+  padding: 14px 12px;
 }
 
 h2 {
   margin: 0 0 10px;
-  padding: 0 8px;
-  color: #777;
-  font-size: 12px;
-  font-weight: 500;
+  padding: 0;
+  color: #252525;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 ul {
@@ -412,20 +403,145 @@ ul {
   list-style: none;
 }
 
-li button {
+.history-list-item {
+  display: flex;
+  position: relative;
+  min-width: 0;
+  align-items: center;
+}
+
+.history-item {
   display: block;
-  width: 100%;
-  padding: 9px 8px;
+  width: auto;
+  min-width: 0;
+  flex: 1;
+  padding: 9px 76px 9px 8px;
   overflow: hidden;
   color: #303030;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
   border-radius: 7px;
+  font-size: 14px;
 }
 
-li button:hover {
+.history-item:hover,
+.history-item.active {
   background: #e8e8e8;
+}
+
+.history-actions {
+  display: flex;
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  gap: 5px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: opacity 120ms ease;
+}
+
+.history-list-item:hover .history-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.history-action {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  color: #6e6e6e;
+  border: 1px solid #dedede;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.history-action:hover {
+  background: #e5e5e5;
+}
+
+.history-action.pinned {
+  color: #28704a;
+}
+
+.history-action.delete:hover {
+  color: #c44040;
+}
+
+.history-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.modal-backdrop {
+  display: grid;
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  padding: 24px;
+  place-items: center;
+  background: rgb(0 0 0 / 35%);
+}
+
+.delete-dialog {
+  box-sizing: border-box;
+  width: min(360px, 100%);
+  padding: 20px;
+  color: #252525;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 18%);
+}
+
+.delete-dialog h3,
+.delete-dialog p {
+  margin: 0;
+}
+
+.delete-dialog h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.delete-dialog p {
+  margin-top: 9px;
+  color: #6f6f6f;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.delete-dialog__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
+.delete-dialog__actions button {
+  height: 32px;
+  padding: 0 12px;
+  color: #4c4c4c;
+  border: 1px solid #dedede;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.delete-dialog__actions button:hover {
+  background: #f4f4f4;
+}
+
+.delete-dialog__actions .delete-dialog__confirm {
+  color: #fff;
+  border-color: #cf4c4c;
+  background: #cf4c4c;
+}
+
+.delete-dialog__actions .delete-dialog__confirm:hover {
+  background: #b93e3e;
 }
 
 .drawer-enter-active,

@@ -9,6 +9,7 @@ export interface ConversationSummary {
   title: string
   conversationDate: string
   createdTime: string
+  isPinned: boolean
 }
 
 export interface ConversationMessage {
@@ -153,23 +154,40 @@ export const saveAssistantMessage = (
 export const listConversations = (): ConversationSummary[] => {
   const rows = getDatabase()
     .prepare(
-      `SELECT id, title, conversation_date, created_time
+      `SELECT id, title, conversation_date, created_time, is_pinned
        FROM conversations
-       ORDER BY updated_at DESC`
+       ORDER BY is_pinned DESC, updated_at DESC`
     )
     .all() as Array<{
     id: string
     title: string
     conversation_date: string
     created_time: string
+    is_pinned: number
   }>
 
   return rows.map((row) => ({
     id: row.id,
     title: row.title,
     conversationDate: row.conversation_date,
-    createdTime: row.created_time
+    createdTime: row.created_time,
+    isPinned: row.is_pinned === 1
   }))
+}
+
+export const toggleConversationPinned = (conversationId: string): void => {
+  getDatabase()
+    .prepare(
+      `UPDATE conversations
+       SET is_pinned = CASE WHEN is_pinned = 1 THEN 0 ELSE 1 END,
+           updated_at = ?
+       WHERE id = ?`
+    )
+    .run(Date.now(), conversationId)
+}
+
+export const deleteConversation = (conversationId: string): void => {
+  getDatabase().prepare('DELETE FROM conversations WHERE id = ?').run(conversationId)
 }
 
 export const getConversationMessagePage = (

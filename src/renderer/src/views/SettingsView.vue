@@ -2,6 +2,7 @@
 import { ArrowLeft, Database } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { getThemePreference, setThemePreference, type ThemePreference } from '../theme'
 
 interface DatabaseLocation {
   directory: string
@@ -14,6 +15,12 @@ const databaseLocation = ref<DatabaseLocation>()
 const isMigrating = ref(false)
 const statusMessage = ref('')
 const statusType = ref<'success' | 'error'>('success')
+const themePreference = ref<ThemePreference>(getThemePreference())
+
+const changeTheme = (preference: ThemePreference): void => {
+  themePreference.value = preference
+  setThemePreference(preference)
+}
 
 const loadDatabaseLocation = async (): Promise<void> => {
   databaseLocation.value = await window.api.settings.getDatabaseLocation()
@@ -52,11 +59,44 @@ onMounted(() => {
       <h1>设置</h1>
       <button class="back-button" type="button" @click="router.push({ name: 'home' })">
         <ArrowLeft :size="17" :stroke-width="1.8" />
-        返回首页
+        返回聊天
       </button>
     </header>
 
     <main class="settings-content">
+      <section class="settings-group" aria-labelledby="appearance-title">
+        <h2 id="appearance-title">外观</h2>
+        <div class="setting-row theme-row">
+          <div class="setting-row__main">
+            <div class="setting-row__title">主题</div>
+            <p>选择你偏好的显示方式</p>
+          </div>
+          <div class="theme-options" role="group" aria-label="主题选择">
+            <button
+              :class="{ active: themePreference === 'light' }"
+              type="button"
+              @click="changeTheme('light')"
+            >
+              浅色
+            </button>
+            <button
+              :class="{ active: themePreference === 'dark' }"
+              type="button"
+              @click="changeTheme('dark')"
+            >
+              深色
+            </button>
+            <button
+              :class="{ active: themePreference === 'system' }"
+              type="button"
+              @click="changeTheme('system')"
+            >
+              跟随系统
+            </button>
+          </div>
+        </div>
+      </section>
+
       <section class="settings-group" aria-labelledby="data-privacy-title">
         <h2 id="data-privacy-title">数据与隐私</h2>
         <div class="setting-row">
@@ -147,13 +187,14 @@ h1 {
   font-size: 13px;
   border: 1px solid #dde1e7;
   border-radius: 8px;
-  background: #fff;
+  background: transparent;
 }
 
 .back-button {
   height: 30px;
   padding: 0 9px;
   border-color: transparent;
+  background: transparent;
 }
 
 .back-button:hover,
@@ -217,6 +258,38 @@ h2 {
   color: #64748b;
 }
 
+.theme-row {
+  min-height: 88px;
+}
+
+.theme-options {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.theme-options button {
+  height: 34px;
+  padding: 0 12px;
+  color: #4c596c;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid #dde1e7;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.theme-options button:hover {
+  background: #f7f8fa;
+}
+
+.theme-options button.active {
+  color: #28704a;
+  border-color: #b9d5c2;
+  background: #f4faf5;
+}
+
 .setting-row p {
   margin-top: 5px;
   color: #8993a1;
@@ -263,6 +336,10 @@ code {
   }
 
   .outline-button {
+    align-self: flex-end;
+  }
+
+  .theme-options {
     align-self: flex-end;
   }
 }

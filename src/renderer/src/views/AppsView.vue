@@ -7,10 +7,11 @@ const router = useRouter()
 
 <template>
   <section class="page-view">
-    <header class="page-toolbar">
-      <button type="button" @click="router.push({ name: 'home' })">
+    <header class="console">
+      <h1>应用</h1>
+      <button class="back-button" type="button" @click="router.push({ name: 'home' })">
         <ArrowLeft :size="18" :stroke-width="1.8" />
-        返回首页
+        返回聊天
       </button>
     </header>
     <main>应用</main>
@@ -26,15 +27,25 @@ const router = useRouter()
   background: #fff;
 }
 
-.page-toolbar {
+.console {
   display: flex;
   box-sizing: border-box;
+  min-height: 48px;
   padding: 7px 12px;
   align-items: center;
+  justify-content: space-between;
   border-bottom: 1px solid #efefef;
+  background: #fff;
 }
 
-button {
+h1 {
+  margin: 0;
+  color: #252525;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.back-button {
   display: inline-flex;
   height: 30px;
   gap: 5px;
@@ -49,7 +60,7 @@ button {
   background: transparent;
 }
 
-button:hover {
+.back-button:hover {
   background: #f3f3f3;
 }
 
