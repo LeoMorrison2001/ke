@@ -53,7 +53,11 @@ export const streamDialogue = async (
       continue
     }
 
-    if (part.type === 'tool-result' || part.type === 'tool-error') {
+    if (part.type === 'tool-result') {
+      continue
+    }
+
+    if (part.type === 'tool-error') {
       continue
     }
 
