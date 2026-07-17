@@ -1,0 +1,24 @@
+# Dependencies and generated build output
+/node_modules/
+/dist/
+/out/
+/release/
+
+# Tool caches and logs
+/.eslintcache
+*.log
+*.log.*
+
+# Local environment variables (keep a safe template in version control)
+.env
+.env.*
+!.env.example
+
+# OS and editor-local files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/*.local.json
+.idea
+.vscode
