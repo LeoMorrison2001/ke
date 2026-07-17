@@ -14,6 +14,8 @@ export interface DisplayMessage {
   role: 'user' | 'assistant'
   content: string
   cursor?: number
+  createdAt?: number
+  createdTime?: string
 }
 
 export interface AiActivity {
@@ -64,7 +66,9 @@ export const useChatStore = defineStore('chat', () => {
       id: message.id,
       role: message.role,
       content: message.content,
-      cursor: message.cursor
+      cursor: message.cursor,
+      createdAt: message.createdAt,
+      createdTime: message.createdTime
     }))
     oldestMessageCursor.value = page.messages.at(0)?.cursor
     hasMoreMessages.value = page.hasMore
@@ -91,7 +95,9 @@ export const useChatStore = defineStore('chat', () => {
         id: message.id,
         role: message.role,
         content: message.content,
-        cursor: message.cursor
+        cursor: message.cursor,
+        createdAt: message.createdAt,
+        createdTime: message.createdTime
       }))
       messages.value = [...olderMessages, ...messages.value]
       oldestMessageCursor.value = messages.value.at(0)?.cursor
@@ -121,6 +127,8 @@ export const useChatStore = defineStore('chat', () => {
       )
       userMessage.id = savedUserMessage.id
       userMessage.cursor = savedUserMessage.cursor
+      userMessage.createdAt = savedUserMessage.createdAt
+      userMessage.createdTime = savedUserMessage.createdTime
       oldestMessageCursor.value ??= savedUserMessage.cursor
       await refreshConversations()
       await window.api.chat.send(currentConversationId.value)
@@ -157,8 +165,15 @@ export const useChatStore = defineStore('chat', () => {
       if (conversationId !== currentConversationId.value) return
       activity.value = nextActivity
     })
-    window.api.chat.onComplete(({ conversationId }) => {
+    window.api.chat.onComplete(({ conversationId, assistantMessage }) => {
       if (conversationId !== currentConversationId.value) return
+      const assistantDisplayMessage = messages.value.at(-1)
+      if (assistantDisplayMessage?.role === 'assistant') {
+        assistantDisplayMessage.id = assistantMessage.id
+        assistantDisplayMessage.cursor = assistantMessage.cursor
+        assistantDisplayMessage.createdAt = assistantMessage.createdAt
+        assistantDisplayMessage.createdTime = assistantMessage.createdTime
+      }
       isSending.value = false
       activity.value = undefined
       void refreshConversations()

@@ -13,7 +13,7 @@ import { app } from 'electron'
 
 const DATABASE_DIRECTORY_NAME = 'data'
 const DATABASE_FILE_NAME = 'ke.sqlite'
-const DATABASE_SCHEMA_VERSION = 6
+const DATABASE_SCHEMA_VERSION = 7
 const STORAGE_SETTINGS_FILE_NAME = 'storage-settings.json'
 
 let database: DatabaseSync | undefined
@@ -66,6 +66,7 @@ const applySchema = (connection: DatabaseSync): void => {
         role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
         content TEXT NOT NULL,
         created_time TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
         FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
       );
 
@@ -109,6 +110,20 @@ const applySchema = (connection: DatabaseSync): void => {
           : ''
       }
 
+      ${
+        currentVersion.user_version > 0 && currentVersion.user_version < 7
+          ? `ALTER TABLE conversation_memories ADD COLUMN created_at INTEGER;
+             UPDATE conversation_memories AS memory
+             SET created_time = (
+                   SELECT conversation_date FROM conversations WHERE id = memory.conversation_id
+                 ) || ' ' || memory.created_time,
+                 created_at = CAST(strftime('%s', (
+                   SELECT conversation_date FROM conversations WHERE id = memory.conversation_id
+                 ) || ' ' || memory.created_time) AS INTEGER) * 1000
+             WHERE created_at IS NULL;`
+          : ''
+      }
+
       CREATE INDEX IF NOT EXISTS idx_conversations_pinned_updated_at
         ON conversations(is_pinned DESC, updated_at DESC);
 
@@ -117,6 +132,9 @@ const applySchema = (connection: DatabaseSync): void => {
 
       CREATE INDEX IF NOT EXISTS idx_conversation_memories_conversation_time
         ON conversation_memories(conversation_id, created_time DESC);
+
+      CREATE INDEX IF NOT EXISTS idx_conversation_memories_conversation_created_at
+        ON conversation_memories(conversation_id, created_at DESC);
 
       CREATE INDEX IF NOT EXISTS idx_user_profile_change_logs_user_created
         ON user_profile_change_logs(user_id, created_at DESC);

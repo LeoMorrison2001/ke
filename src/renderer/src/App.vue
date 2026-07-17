@@ -262,12 +262,12 @@ html[data-theme='dark'] .archive-dialog__actions .archive-dialog__confirm:hover 
   background: #3b6da2;
 }
 
-html[data-theme='dark'] .messages .user {
+html[data-theme='dark'] .messages article.user {
   color: #e6edf5;
   background: #244b68;
 }
 
-html[data-theme='dark'] .messages .assistant {
+html[data-theme='dark'] .messages article.assistant {
   color: #e4e8ee;
   background: #252525;
 }

@@ -130,6 +130,18 @@ const resizeComposer = (event: Event): void => {
   textarea.style.overflowY = textarea.scrollHeight > maxComposerHeight ? 'auto' : 'hidden'
 }
 
+const formatMessageTime = (createdAt?: number, fallback?: string): string => {
+  if (!createdAt) return fallback ?? ''
+
+  const date = new Date(createdAt)
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  const second = String(date.getSeconds()).padStart(2, '0')
+  return `${date.getFullYear()}-${month}-${day} ${hour}:${minute}:${second}`
+}
+
 onMounted(() => {
   void chatStore.initialize()
   void nextTick(() => {
@@ -185,12 +197,21 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
       </div>
       <div v-else class="messages">
         <p v-if="isLoadingOlderMessages" class="loading-older">正在加载更早的消息…</p>
-        <article v-for="chatMessage in messages" :key="chatMessage.id" :class="chatMessage.role">
-          <span v-if="chatMessage.content">{{ chatMessage.content }}</span>
-          <span v-else-if="chatMessage.role === 'assistant' && isSending" class="thinking">
-            {{ activity?.label ?? '小可正在思考' }}<span class="thinking__dots">...</span>
-          </span>
-        </article>
+        <div
+          v-for="chatMessage in messages"
+          :key="chatMessage.id"
+          :class="['message-entry', chatMessage.role]"
+        >
+          <article :class="chatMessage.role">
+            <span v-if="chatMessage.content">{{ chatMessage.content }}</span>
+            <span v-else-if="chatMessage.role === 'assistant' && isSending" class="thinking">
+              {{ activity?.label ?? '小可正在思考' }}<span class="thinking__dots">...</span>
+            </span>
+          </article>
+          <time v-if="chatMessage.createdAt || chatMessage.createdTime" class="message-time">
+            {{ formatMessageTime(chatMessage.createdAt, chatMessage.createdTime) }}
+          </time>
+        </div>
       </div>
     </main>
 
@@ -602,18 +623,41 @@ ul {
   line-height: 1.6;
 }
 
-.messages .user {
+.messages article.user {
   align-self: flex-end;
   background: #eaf4fe;
 }
 
-.messages .assistant {
+.messages article.assistant {
   align-self: flex-start;
   background: #f4f4f4;
 }
 
+.message-entry {
+  display: flex;
+  flex-direction: column;
+}
+
+.message-entry.user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.message-entry.assistant {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.message-time {
+  margin-top: 5px;
+  color: #969696;
+  font-size: 12px;
+  line-height: 1;
+}
+
 .thinking {
   color: #777;
+  white-space: nowrap;
 }
 
 .thinking__dots {

@@ -23,6 +23,7 @@ export interface ConversationMessage {
   role: 'user' | 'assistant'
   content: string
   createdTime: string
+  createdAt: number
   cursor: number
 }
 
@@ -36,6 +37,7 @@ interface ConversationMessageRow {
   role: 'user' | 'assistant'
   content: string
   created_time: string
+  created_at: number
   cursor: number
 }
 
@@ -53,6 +55,8 @@ const formatTime = (date: Date): string => {
   return `${hour}:${minute}:${second}`
 }
 
+const formatDateTime = (date: Date): string => `${formatDate(date)} ${formatTime(date)}`
+
 const createTitle = (content: string): string => Array.from(content.trim()).slice(0, 20).join('')
 
 const toConversationMessage = (row: ConversationMessageRow): ConversationMessage => ({
@@ -60,6 +64,7 @@ const toConversationMessage = (row: ConversationMessageRow): ConversationMessage
   role: row.role,
   content: row.content,
   createdTime: row.created_time,
+  createdAt: Number(row.created_at),
   cursor: Number(row.cursor)
 })
 
@@ -92,7 +97,8 @@ export const saveUserMessage = (conversationId: string, content: string): Conver
   const now = new Date()
   const messageId = randomUUID()
   const conversationDate = formatDate(now)
-  const createdTime = formatTime(now)
+  const createdTime = formatDateTime(now)
+  const createdAt = now.getTime()
 
   try {
     database.exec('BEGIN IMMEDIATE;')
@@ -114,10 +120,10 @@ export const saveUserMessage = (conversationId: string, content: string): Conver
     database
       .prepare(
         `INSERT INTO conversation_memories
-          (id, conversation_id, creator_id, role, content, created_time)
-         VALUES (?, ?, ?, 'user', ?, ?)`
+          (id, conversation_id, creator_id, role, content, created_time, created_at)
+         VALUES (?, ?, ?, 'user', ?, ?, ?)`
       )
-      .run(messageId, conversationId, activeUser.id, content, createdTime)
+      .run(messageId, conversationId, activeUser.id, content, createdTime, createdAt)
     database
       .prepare('UPDATE conversations SET updated_at = ? WHERE id = ? AND creator_id = ?')
       .run(now.getTime(), conversationId, activeUser.id)
@@ -133,7 +139,7 @@ export const saveUserMessage = (conversationId: string, content: string): Conver
 
   const row = database
     .prepare(
-      `SELECT id, role, content, created_time, rowid AS cursor
+      `SELECT id, role, content, created_time, created_at, rowid AS cursor
        FROM conversation_memories WHERE id = ?`
     )
     .get(messageId) as unknown as ConversationMessageRow
@@ -149,7 +155,8 @@ export const saveAssistantMessage = (
   const database = getDatabase()
   const now = new Date()
   const messageId = randomUUID()
-  const createdTime = formatTime(now)
+  const createdTime = formatDateTime(now)
+  const createdAt = now.getTime()
 
   try {
     database.exec('BEGIN IMMEDIATE;')
@@ -157,10 +164,10 @@ export const saveAssistantMessage = (
     database
       .prepare(
         `INSERT INTO conversation_memories
-          (id, conversation_id, creator_id, role, content, created_time)
-         VALUES (?, ?, ?, 'assistant', ?, ?)`
+          (id, conversation_id, creator_id, role, content, created_time, created_at)
+         VALUES (?, ?, ?, 'assistant', ?, ?, ?)`
       )
-      .run(messageId, conversationId, userId, content, createdTime)
+      .run(messageId, conversationId, userId, content, createdTime, createdAt)
     database
       .prepare('UPDATE conversations SET updated_at = ? WHERE id = ? AND creator_id = ?')
       .run(now.getTime(), conversationId, userId)
@@ -176,7 +183,7 @@ export const saveAssistantMessage = (
 
   const row = database
     .prepare(
-      `SELECT id, role, content, created_time, rowid AS cursor
+      `SELECT id, role, content, created_time, created_at, rowid AS cursor
        FROM conversation_memories WHERE id = ?`
     )
     .get(messageId) as unknown as ConversationMessageRow
@@ -276,12 +283,12 @@ export const getConversationMessagePage = (
   const database = getDatabase()
   const activeUser = requireActiveUser()
   const query = beforeCursor
-    ? `SELECT id, role, content, created_time, rowid AS cursor
+    ? `SELECT id, role, content, created_time, created_at, rowid AS cursor
        FROM conversation_memories
        WHERE conversation_id = ? AND creator_id = ? AND rowid < ?
        ORDER BY rowid DESC
        LIMIT ?`
-    : `SELECT id, role, content, created_time, rowid AS cursor
+    : `SELECT id, role, content, created_time, created_at, rowid AS cursor
        FROM conversation_memories
        WHERE conversation_id = ? AND creator_id = ?
        ORDER BY rowid DESC

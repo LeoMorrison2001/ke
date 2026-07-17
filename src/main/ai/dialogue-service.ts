@@ -1,5 +1,9 @@
 import { stepCountIs, streamText, type ModelMessage } from 'ai'
-import { getConversationMessagesForModel, saveAssistantMessage } from '../conversation-repository'
+import {
+  getConversationMessagesForModel,
+  saveAssistantMessage,
+  type ConversationMessage
+} from '../conversation-repository'
 import type { ActiveUser } from '../user-repository'
 import { getChatModel } from './model-client'
 import { generationActivity, type AiActivity } from './activity'
@@ -15,7 +19,7 @@ export const streamDialogue = async (
   conversationId: string,
   user: ActiveUser,
   { onActivity, onDelta }: StreamDialogueOptions
-): Promise<void> => {
+): Promise<ConversationMessage> => {
   if (!process.env.NEW_API_KEY) {
     throw new Error('未配置 AI API Key，请在 .env 中设置 NEW_API_KEY。')
   }
@@ -66,5 +70,5 @@ export const streamDialogue = async (
     }
   }
 
-  saveAssistantMessage(conversationId, response, user.id)
+  return saveAssistantMessage(conversationId, response, user.id)
 }

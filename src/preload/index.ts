@@ -6,6 +6,7 @@ interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   createdTime: string
+  createdAt: number
   cursor: number
 }
 
@@ -40,6 +41,7 @@ interface ChatActivityEvent {
 
 interface ChatCompleteEvent {
   conversationId: string
+  assistantMessage: ChatMessage
 }
 
 interface ChatErrorEvent {

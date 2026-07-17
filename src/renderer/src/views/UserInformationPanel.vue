@@ -87,7 +87,12 @@ const saveUser = async (): Promise<void> => {
   isWorking.value = true
   errorMessage.value = ''
   try {
-    await window.api.user.update(editingUser.value.id, form)
+    await window.api.user.update(editingUser.value.id, {
+      name: form.name,
+      preferredName: form.preferredName,
+      gender: form.gender,
+      birthDate: form.birthDate
+    })
     await loadUsers()
     closeDialog(true)
   } catch (error) {
