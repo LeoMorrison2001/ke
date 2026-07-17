@@ -4,6 +4,7 @@ import HomeView from '../views/HomeView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import OnboardingView from '../views/OnboardingView.vue'
 import XiaokeMemoryView from '../views/XiaokeMemoryView.vue'
+import XiaokeDiaryView from '../views/XiaokeDiaryView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -32,6 +33,11 @@ const router = createRouter({
       path: '/applications/xiaoke-memory/:section(profile|long-term|short-term|conversation|scheduled)',
       name: 'xiaoke-memory-section',
       component: XiaokeMemoryView
+    },
+    {
+      path: '/applications/xiaoke-diary',
+      name: 'xiaoke-diary',
+      component: XiaokeDiaryView
     },
     {
       path: '/settings',
