@@ -12,6 +12,12 @@ export interface ConversationSummary {
   isPinned: boolean
 }
 
+export interface ConversationMemorySummary extends ConversationSummary {
+  updatedAt: number
+  messageCount: number
+  isArchived: boolean
+}
+
 export interface ConversationMessage {
   id: string
   role: 'user' | 'assistant'
@@ -201,6 +207,42 @@ export const listConversations = (): ConversationSummary[] => {
     conversationDate: row.conversation_date,
     createdTime: row.created_time,
     isPinned: row.is_pinned === 1
+  }))
+}
+
+export const listConversationMemorySummaries = (): ConversationMemorySummary[] => {
+  const activeUser = requireActiveUser()
+  const rows = getDatabase()
+    .prepare(
+      `SELECT c.id, c.title, c.conversation_date, c.created_time, c.updated_at, c.is_pinned,
+              c.is_archived, COUNT(m.id) AS message_count
+       FROM conversations c
+       LEFT JOIN conversation_memories m
+         ON m.conversation_id = c.id AND m.creator_id = c.creator_id
+       WHERE c.creator_id = ?
+       GROUP BY c.id
+       ORDER BY c.updated_at DESC`
+    )
+    .all(activeUser.id) as unknown as Array<{
+    id: string
+    title: string
+    conversation_date: string
+    created_time: string
+    updated_at: number
+    is_pinned: number
+    is_archived: number
+    message_count: number
+  }>
+
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    conversationDate: row.conversation_date,
+    createdTime: row.created_time,
+    isPinned: row.is_pinned === 1,
+    updatedAt: row.updated_at,
+    messageCount: Number(row.message_count),
+    isArchived: row.is_archived === 1
   }))
 }
 

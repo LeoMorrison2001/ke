@@ -21,6 +21,7 @@ import {
   archiveConversation,
   getConversationOwnerId,
   getConversationMessagePage,
+  listConversationMemorySummaries,
   listConversations,
   saveUserMessage,
   toggleConversationPinned
@@ -172,6 +173,10 @@ app.whenReady().then(() => {
 
   ipcMain.handle('chat:list-conversations', () => {
     return listConversations()
+  })
+
+  ipcMain.handle('memory:list-conversation-summaries', () => {
+    return listConversationMemorySummaries()
   })
 
   ipcMain.handle('chat:toggle-conversation-pinned', (_event, conversationId: string) => {

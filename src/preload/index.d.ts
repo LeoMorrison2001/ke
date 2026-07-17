@@ -54,6 +54,12 @@ interface ChatErrorEvent {
   errorMessage: string
 }
 
+interface ConversationMemorySummary extends ConversationSummary {
+  updatedAt: number
+  messageCount: number
+  isArchived: boolean
+}
+
 interface DatabaseLocation {
   directory: string
   databasePath: string
@@ -111,6 +117,10 @@ interface UserApi {
   onActiveChange: (callback: (user: ActiveUser) => void) => () => void
 }
 
+interface MemoryApi {
+  listConversationSummaries: () => Promise<ConversationMemorySummary[]>
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
@@ -118,6 +128,7 @@ declare global {
       windowControls: WindowControls
       chat: ChatApi
       user: UserApi
+      memory: MemoryApi
       settings: SettingsApi
     }
   }

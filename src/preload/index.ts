@@ -47,6 +47,12 @@ interface ChatErrorEvent {
   errorMessage: string
 }
 
+interface ConversationMemorySummary extends ConversationSummary {
+  updatedAt: number
+  messageCount: number
+  isArchived: boolean
+}
+
 interface DatabaseLocation {
   directory: string
   databasePath: string
@@ -156,6 +162,10 @@ const api = {
         ipcRenderer.removeListener('user:active-changed', listener)
       }
     }
+  },
+  memory: {
+    listConversationSummaries: (): Promise<ConversationMemorySummary[]> =>
+      ipcRenderer.invoke('memory:list-conversation-summaries')
   },
   settings: {
     getDatabaseLocation: (): Promise<DatabaseLocation> =>
