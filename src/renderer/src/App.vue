@@ -80,7 +80,7 @@ body,
   --color-text-muted: #667085;
   --color-text-subtle: #8993a1;
   --color-border: #e3e6ea;
-  --color-border-subtle: #e9ebee;
+  --color-border-subtle: #e3e6ea;
   --color-accent: #3d8058;
   --color-accent-hover: #34704c;
   --color-accent-text: #28704a;
@@ -102,7 +102,7 @@ html[data-theme='dark'] {
   --color-text: #e4e8ee;
   --color-text-muted: #aeb7c3;
   --color-text-subtle: #777f8b;
-  --color-border: #303030;
+  --color-border: #242424;
   --color-border-subtle: #242424;
   --color-accent: #3d8058;
   --color-accent-hover: #34704c;
