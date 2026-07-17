@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 type Gender = 'male' | 'female'
 type Step = 'welcome' | 'name' | 'preferredName' | 'gender' | 'birthDate'
 
 const router = useRouter()
+const route = useRoute()
 const steps: Step[] = ['welcome', 'name', 'preferredName', 'gender', 'birthDate']
 const step = ref<Step>('welcome')
 const name = ref('')
@@ -21,6 +22,7 @@ const calendarField = ref<HTMLElement>()
 
 const stepIndex = computed(() => steps.indexOf(step.value))
 const isWelcome = computed(() => step.value === 'welcome')
+const isAddingUser = computed(() => route.query.mode === 'add-user')
 const isLastStep = computed(() => step.value === 'birthDate')
 const canGoBack = computed(() => !isWelcome.value && step.value !== 'name')
 const canContinue = computed(() => {
@@ -127,6 +129,11 @@ const previousStep = (): void => {
   step.value = steps[stepIndex.value - 1]
 }
 
+const cancelAddingUser = async (): Promise<void> => {
+  if (!isAddingUser.value) return
+  await router.replace({ name: 'xiaoke-memory-section', params: { section: 'profile' } })
+}
+
 const createUser = async (): Promise<void> => {
   if (!canContinue.value || isSaving.value) return
   if (!gender.value) {
@@ -136,13 +143,19 @@ const createUser = async (): Promise<void> => {
   errorMessage.value = ''
   isSaving.value = true
   try {
-    await window.api.user.createInitial({
+    const input = {
       name: name.value,
       gender: gender.value,
       birthDate: birthDate.value,
       preferredName: preferredName.value
-    })
-    await router.replace({ name: 'home' })
+    }
+    if (isAddingUser.value) {
+      await window.api.user.create(input)
+      await router.replace({ name: 'xiaoke-memory-section', params: { section: 'profile' } })
+    } else {
+      await window.api.user.createInitial(input)
+      await router.replace({ name: 'home' })
+    }
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '出了点小问题，请再试一次。'
   } finally {
@@ -161,7 +174,12 @@ const createUser = async (): Promise<void> => {
       <div v-if="isWelcome" class="welcome-content">
         <h1>你好呀！我叫小可，很高兴认识你。</h1>
         <p>接下来花一点时间，让我先了解一下你吧。</p>
-        <button class="primary-button" type="button" @click="nextStep">开始</button>
+        <div :class="['welcome-actions', { 'with-cancel': isAddingUser }]">
+          <button v-if="isAddingUser" class="back-button" type="button" @click="cancelAddingUser">
+            取消
+          </button>
+          <button class="primary-button" type="button" @click="nextStep">开始</button>
+        </div>
       </div>
 
       <form v-else @submit.prevent="isLastStep ? createUser() : nextStep()">
@@ -363,6 +381,15 @@ const createUser = async (): Promise<void> => {
 
 .welcome-content > p:not(.eyebrow) {
   margin-bottom: 28px;
+}
+
+.welcome-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.welcome-actions.with-cancel {
+  gap: 10px;
 }
 
 .onboarding-content form {

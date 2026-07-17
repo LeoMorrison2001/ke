@@ -46,6 +46,7 @@ export const useChatStore = defineStore('chat', () => {
     hasMoreMessages.value = false
     chatScrollTop.value = 0
     isFollowingLatest.value = true
+    isSending.value = false
     activity.value = undefined
   }
 
@@ -147,22 +148,30 @@ export const useChatStore = defineStore('chat', () => {
     if (initialized) return
     initialized = true
 
-    window.api.chat.onDelta((text) => {
+    window.api.chat.onDelta(({ conversationId, text }) => {
+      if (conversationId !== currentConversationId.value) return
       const assistantMessage = messages.value.at(-1)
       if (assistantMessage?.role === 'assistant') assistantMessage.content += text
     })
-    window.api.chat.onActivity((nextActivity) => {
+    window.api.chat.onActivity(({ conversationId, activity: nextActivity }) => {
+      if (conversationId !== currentConversationId.value) return
       activity.value = nextActivity
     })
-    window.api.chat.onComplete(() => {
+    window.api.chat.onComplete(({ conversationId }) => {
+      if (conversationId !== currentConversationId.value) return
       isSending.value = false
       activity.value = undefined
       void refreshConversations()
     })
-    window.api.chat.onError((errorMessage) => {
+    window.api.chat.onError(({ conversationId, errorMessage }) => {
+      if (conversationId !== currentConversationId.value) return
       activity.value = undefined
       const assistantMessage = messages.value.at(-1)
       if (assistantMessage?.role === 'assistant') assistantMessage.content = errorMessage
+    })
+    window.api.user.onActiveChange(() => {
+      resetConversation()
+      void refreshConversations()
     })
 
     await refreshConversations()

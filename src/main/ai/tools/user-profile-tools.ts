@@ -146,7 +146,10 @@ const birthDateSchema = jsonSchema<{ birthDate: string }>({
   additionalProperties: false
 })
 
-export const createUserProfileTools = (conversationId: string): UserProfileTools => ({
+export const createUserProfileTools = (
+  conversationId: string,
+  userId: number
+): UserProfileTools => ({
   update_preferred_name: tool({
     description:
       '更新小可对当前用户的长期称呼。仅在用户直接、明确表达“以后/今后/请记住这样叫我”时调用，例如“以后叫我宝贝”。传入用户指定的称呼原文。不要把姓名、临时玩笑、第三方信息或不明确表达保存为称呼；当前称呼已相同时不调用。',
@@ -156,6 +159,7 @@ export const createUserProfileTools = (conversationId: string): UserProfileTools
       const result = updateActiveUserPreferredName({
         preferredName,
         source: 'ai_tool',
+        userId,
         toolName: 'update_preferred_name',
         conversationId,
         toolCallId
@@ -177,6 +181,7 @@ export const createUserProfileTools = (conversationId: string): UserProfileTools
       const result = updateActiveUserName({
         name,
         source: 'ai_tool',
+        userId,
         toolName: 'update_user_name',
         conversationId,
         toolCallId
@@ -198,6 +203,7 @@ export const createUserProfileTools = (conversationId: string): UserProfileTools
       const result = updateActiveUserGender({
         gender,
         source: 'ai_tool',
+        userId,
         toolName: 'update_user_gender',
         conversationId,
         toolCallId
@@ -219,6 +225,7 @@ export const createUserProfileTools = (conversationId: string): UserProfileTools
       const result = updateActiveUserBirthDate({
         birthDate,
         source: 'ai_tool',
+        userId,
         toolName: 'update_birth_date',
         conversationId,
         toolCallId

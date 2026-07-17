@@ -13,6 +13,10 @@ export interface ActiveUser {
   preferredName: string
 }
 
+export interface UserSummary extends ActiveUser {
+  isActive: boolean
+}
+
 export interface CreateUserInput {
   name: string
   gender: UserGender
@@ -24,6 +28,7 @@ interface UpdateActiveUserProfileFieldInput {
   field: UserProfileField
   value: string
   source: UserProfileChangeSource
+  userId?: number
   toolName?: string
   conversationId?: string
   toolCallId?: string
@@ -93,6 +98,7 @@ interface UserRow {
   gender: UserGender
   birth_date: string
   preferred_name: string
+  is_active: number
 }
 
 const toActiveUser = (row: UserRow): ActiveUser => ({
@@ -101,6 +107,11 @@ const toActiveUser = (row: UserRow): ActiveUser => ({
   gender: row.gender,
   birthDate: row.birth_date,
   preferredName: row.preferred_name
+})
+
+const toUserSummary = (row: UserRow): UserSummary => ({
+  ...toActiveUser(row),
+  isActive: row.is_active === 1
 })
 
 const validateText = (value: string, label: string): string => {
@@ -140,15 +151,29 @@ const normalizeProfileValue = (field: UserProfileField, value: string): string =
 const getActiveUserRow = (): UserRow | undefined => {
   return getDatabase()
     .prepare(
-      `SELECT id, name, gender, birth_date, preferred_name
+      `SELECT id, name, gender, birth_date, preferred_name, is_active
        FROM users WHERE is_active = 1 LIMIT 1`
     )
     .get() as UserRow | undefined
 }
 
+const getUserRowById = (userId: number): UserRow | undefined => {
+  return getDatabase()
+    .prepare(
+      `SELECT id, name, gender, birth_date, preferred_name, is_active
+       FROM users WHERE id = ?`
+    )
+    .get(userId) as UserRow | undefined
+}
+
 export const getActiveUser = (): ActiveUser | undefined => {
   const row = getActiveUserRow()
 
+  return row ? toActiveUser(row) : undefined
+}
+
+export const getUserById = (userId: number): ActiveUser | undefined => {
+  const row = getUserRowById(userId)
   return row ? toActiveUser(row) : undefined
 }
 
@@ -164,22 +189,52 @@ const requireActiveUserRow = (): UserRow => {
   return user
 }
 
-export const createInitialUser = (input: CreateUserInput): ActiveUser => {
+const requireUserRowById = (userId: number): UserRow => {
+  const user = getUserRowById(userId)
+  if (!user) throw new Error('用户不存在。')
+  return user
+}
+
+export const listUsers = (): UserSummary[] => {
+  const rows = getDatabase()
+    .prepare(
+      `SELECT id, name, gender, birth_date, preferred_name, is_active
+       FROM users
+       ORDER BY is_active DESC, updated_at DESC, id DESC`
+    )
+    .all() as unknown as UserRow[]
+
+  return rows.map(toUserSummary)
+}
+
+export const createUser = (input: CreateUserInput): ActiveUser => {
   const name = normalizeProfileValue('name', input.name)
   const preferredName = normalizeProfileValue('preferred_name', input.preferredName)
   const birthDate = normalizeProfileValue('birth_date', input.birthDate)
   const gender = normalizeProfileValue('gender', input.gender) as UserGender
 
   const database = getDatabase()
-  if (getActiveUser()) throw new Error('当前已有生效用户。')
-
   const now = Date.now()
-  const result = database
-    .prepare(
-      `INSERT INTO users (name, gender, birth_date, preferred_name, is_active, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 1, ?, ?)`
-    )
-    .run(name, gender, birthDate, preferredName, now, now)
+  let result: { lastInsertRowid: bigint | number }
+
+  try {
+    database.exec('BEGIN IMMEDIATE;')
+    database.prepare('UPDATE users SET is_active = 0 WHERE is_active = 1').run()
+    result = database
+      .prepare(
+        `INSERT INTO users (name, gender, birth_date, preferred_name, is_active, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 1, ?, ?)`
+      )
+      .run(name, gender, birthDate, preferredName, now, now)
+    database.exec('COMMIT;')
+  } catch (error) {
+    try {
+      database.exec('ROLLBACK;')
+    } catch {
+      // The transaction may not have started yet.
+    }
+    throw error
+  }
 
   return {
     id: Number(result.lastInsertRowid),
@@ -190,11 +245,120 @@ export const createInitialUser = (input: CreateUserInput): ActiveUser => {
   }
 }
 
+export const createInitialUser = (input: CreateUserInput): ActiveUser => createUser(input)
+
+export const switchActiveUser = (userId: number): ActiveUser => {
+  const database = getDatabase()
+  const target = database
+    .prepare(
+      `SELECT id, name, gender, birth_date, preferred_name, is_active
+       FROM users WHERE id = ?`
+    )
+    .get(userId) as UserRow | undefined
+  if (!target) throw new Error('用户不存在。')
+
+  try {
+    database.exec('BEGIN IMMEDIATE;')
+    database.prepare('UPDATE users SET is_active = 0 WHERE is_active = 1').run()
+    database
+      .prepare('UPDATE users SET is_active = 1, updated_at = ? WHERE id = ?')
+      .run(Date.now(), userId)
+    database.exec('COMMIT;')
+  } catch (error) {
+    try {
+      database.exec('ROLLBACK;')
+    } catch {
+      // The transaction may not have started yet.
+    }
+    throw error
+  }
+
+  return { ...toActiveUser(target), id: userId }
+}
+
+export const updateUser = (userId: number, input: CreateUserInput): UserSummary => {
+  const name = normalizeProfileValue('name', input.name)
+  const preferredName = normalizeProfileValue('preferred_name', input.preferredName)
+  const birthDate = normalizeProfileValue('birth_date', input.birthDate)
+  const gender = normalizeProfileValue('gender', input.gender) as UserGender
+  const database = getDatabase()
+  const existing = database
+    .prepare(
+      `SELECT id, name, gender, birth_date, preferred_name, is_active
+       FROM users WHERE id = ?`
+    )
+    .get(userId) as UserRow | undefined
+  if (!existing) throw new Error('用户不存在。')
+
+  const now = Date.now()
+  const updates: Array<[UserProfileField, string, string]> = [
+    ['name', existing.name, name],
+    ['preferred_name', existing.preferred_name, preferredName],
+    ['gender', existing.gender, gender],
+    ['birth_date', existing.birth_date, birthDate]
+  ]
+
+  try {
+    database.exec('BEGIN IMMEDIATE;')
+    database
+      .prepare(
+        `UPDATE users
+         SET name = ?, preferred_name = ?, gender = ?, birth_date = ?, updated_at = ?
+         WHERE id = ?`
+      )
+      .run(name, preferredName, gender, birthDate, now, userId)
+    const logStatement = database.prepare(
+      `INSERT INTO user_profile_change_logs
+        (id, user_id, field_name, old_value, new_value, source, status, created_at)
+       VALUES (?, ?, ?, ?, ?, 'settings', 'applied', ?)`
+    )
+    for (const [field, oldValue, newValue] of updates) {
+      if (oldValue !== newValue) {
+        logStatement.run(randomUUID(), userId, field, oldValue, newValue, now)
+      }
+    }
+    database.exec('COMMIT;')
+  } catch (error) {
+    try {
+      database.exec('ROLLBACK;')
+    } catch {
+      // The transaction may not have started yet.
+    }
+    throw error
+  }
+
+  return { id: userId, name, preferredName, gender, birthDate, isActive: existing.is_active === 1 }
+}
+
+export const deleteUser = (userId: number): void => {
+  const database = getDatabase()
+  const user = database.prepare('SELECT is_active FROM users WHERE id = ?').get(userId) as
+    { is_active: number } | undefined
+  if (!user) throw new Error('用户不存在。')
+  if (user.is_active === 1) throw new Error('不能删除当前正在使用的用户。')
+
+  try {
+    database.exec('BEGIN IMMEDIATE;')
+    database.prepare('DELETE FROM user_profile_change_logs WHERE user_id = ?').run(userId)
+    database.prepare('DELETE FROM conversation_memories WHERE creator_id = ?').run(userId)
+    database.prepare('DELETE FROM conversations WHERE creator_id = ?').run(userId)
+    database.prepare('DELETE FROM users WHERE id = ?').run(userId)
+    database.exec('COMMIT;')
+  } catch (error) {
+    try {
+      database.exec('ROLLBACK;')
+    } catch {
+      // The transaction may not have started yet.
+    }
+    throw error
+  }
+}
+
 const updateActiveUserProfileField = (
   input: UpdateActiveUserProfileFieldInput
 ): UpdateActiveUserProfileFieldResult => {
   const value = normalizeProfileValue(input.field, input.value)
-  const user = requireActiveUserRow()
+  const user = input.userId ? requireUserRowById(input.userId) : requireActiveUserRow()
   const previousValue = user[input.field]
   const changed = previousValue !== value
   const database = getDatabase()

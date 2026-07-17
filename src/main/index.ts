@@ -19,24 +19,39 @@ import {
 } from './database'
 import {
   archiveConversation,
+  getConversationOwnerId,
   getConversationMessagePage,
   listConversations,
   saveUserMessage,
   toggleConversationPinned
 } from './conversation-repository'
 import { streamDialogue } from './ai/dialogue-service'
-import { createInitialUser, getActiveUser, type CreateUserInput } from './user-repository'
+import {
+  createInitialUser,
+  createUser,
+  deleteUser,
+  getActiveUser,
+  getUserById,
+  listUsers,
+  switchActiveUser,
+  updateUser,
+  type CreateUserInput
+} from './user-repository'
 
 const streamChat = async (sender: Electron.WebContents, conversationId: string): Promise<void> => {
   try {
-    await streamDialogue(conversationId, {
-      onDelta: (text) => sender.send('chat:delta', text),
-      onActivity: (activity) => sender.send('chat:activity', activity)
+    const userId = getConversationOwnerId(conversationId)
+    const user = getUserById(userId)
+    if (!user) throw new Error('该对话所属的用户不存在。')
+
+    await streamDialogue(conversationId, user, {
+      onDelta: (text) => sender.send('chat:delta', { conversationId, text }),
+      onActivity: (activity) => sender.send('chat:activity', { conversationId, activity })
     })
-    sender.send('chat:complete')
+    sender.send('chat:complete', { conversationId })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'AI 响应失败，请稍后重试。'
-    sender.send('chat:error', errorMessage)
+    sender.send('chat:error', { conversationId, errorMessage })
   }
 }
 
@@ -126,6 +141,26 @@ app.whenReady().then(() => {
   ipcMain.handle('user:create-initial', (_event, input: CreateUserInput) => {
     return createInitialUser(input)
   })
+
+  ipcMain.handle('user:list', () => listUsers())
+
+  ipcMain.handle('user:create', (event, input: CreateUserInput) => {
+    const user = createUser(input)
+    event.sender.send('user:active-changed', user)
+    return user
+  })
+
+  ipcMain.handle('user:update', (_event, userId: number, input: CreateUserInput) => {
+    return updateUser(userId, input)
+  })
+
+  ipcMain.handle('user:switch', (event, userId: number) => {
+    const user = switchActiveUser(userId)
+    event.sender.send('user:active-changed', user)
+    return user
+  })
+
+  ipcMain.handle('user:delete', (_event, userId: number) => deleteUser(userId))
 
   ipcMain.handle('chat:save-user-message', (_event, conversationId: string, content: string) => {
     return saveUserMessage(conversationId, content)

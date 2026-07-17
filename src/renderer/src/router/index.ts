@@ -44,7 +44,8 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const activeUser = await window.api.user.getActive()
   if (!activeUser && to.name !== 'onboarding') return { name: 'onboarding' }
-  if (activeUser && to.name === 'onboarding') return { name: 'home' }
+  if (activeUser && to.name === 'onboarding' && to.query.mode !== 'add-user')
+    return { name: 'home' }
   return true
 })
 

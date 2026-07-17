@@ -28,6 +28,25 @@ interface AiActivity {
   toolName?: string
 }
 
+interface ChatDeltaEvent {
+  conversationId: string
+  text: string
+}
+
+interface ChatActivityEvent {
+  conversationId: string
+  activity: AiActivity
+}
+
+interface ChatCompleteEvent {
+  conversationId: string
+}
+
+interface ChatErrorEvent {
+  conversationId: string
+  errorMessage: string
+}
+
 interface DatabaseLocation {
   directory: string
   databasePath: string
@@ -42,6 +61,10 @@ interface ActiveUser {
   gender: UserGender
   birthDate: string
   preferredName: string
+}
+
+interface UserSummary extends ActiveUser {
+  isActive: boolean
 }
 
 interface CreateUserInput {
@@ -82,31 +105,33 @@ const api = {
       ipcRenderer.invoke('chat:archive-conversation', conversationId),
     getMessagePage: (conversationId: string, beforeCursor?: number): Promise<ChatMessagePage> =>
       ipcRenderer.invoke('chat:get-message-page', conversationId, beforeCursor),
-    onDelta: (callback: (text: string) => void): (() => void) => {
-      const listener = (_event: Electron.IpcRendererEvent, text: string): void => callback(text)
+    onDelta: (callback: (event: ChatDeltaEvent) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, event: ChatDeltaEvent): void =>
+        callback(event)
       ipcRenderer.on('chat:delta', listener)
       return (): void => {
         ipcRenderer.removeListener('chat:delta', listener)
       }
     },
-    onActivity: (callback: (activity: AiActivity) => void): (() => void) => {
-      const listener = (_event: Electron.IpcRendererEvent, activity: AiActivity): void =>
-        callback(activity)
+    onActivity: (callback: (event: ChatActivityEvent) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, event: ChatActivityEvent): void =>
+        callback(event)
       ipcRenderer.on('chat:activity', listener)
       return (): void => {
         ipcRenderer.removeListener('chat:activity', listener)
       }
     },
-    onComplete: (callback: () => void): (() => void) => {
-      const listener = (): void => callback()
+    onComplete: (callback: (event: ChatCompleteEvent) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, event: ChatCompleteEvent): void =>
+        callback(event)
       ipcRenderer.on('chat:complete', listener)
       return (): void => {
         ipcRenderer.removeListener('chat:complete', listener)
       }
     },
-    onError: (callback: (message: string) => void): (() => void) => {
-      const listener = (_event: Electron.IpcRendererEvent, message: string): void =>
-        callback(message)
+    onError: (callback: (event: ChatErrorEvent) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, event: ChatErrorEvent): void =>
+        callback(event)
       ipcRenderer.on('chat:error', listener)
       return (): void => {
         ipcRenderer.removeListener('chat:error', listener)
@@ -116,7 +141,21 @@ const api = {
   user: {
     getActive: (): Promise<ActiveUser | undefined> => ipcRenderer.invoke('user:get-active'),
     createInitial: (input: CreateUserInput): Promise<ActiveUser> =>
-      ipcRenderer.invoke('user:create-initial', input)
+      ipcRenderer.invoke('user:create-initial', input),
+    list: (): Promise<UserSummary[]> => ipcRenderer.invoke('user:list'),
+    create: (input: CreateUserInput): Promise<ActiveUser> =>
+      ipcRenderer.invoke('user:create', input),
+    update: (userId: number, input: CreateUserInput): Promise<UserSummary> =>
+      ipcRenderer.invoke('user:update', userId, input),
+    switch: (userId: number): Promise<ActiveUser> => ipcRenderer.invoke('user:switch', userId),
+    delete: (userId: number): Promise<void> => ipcRenderer.invoke('user:delete', userId),
+    onActiveChange: (callback: (user: ActiveUser) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, user: ActiveUser): void => callback(user)
+      ipcRenderer.on('user:active-changed', listener)
+      return (): void => {
+        ipcRenderer.removeListener('user:active-changed', listener)
+      }
+    }
   },
   settings: {
     getDatabaseLocation: (): Promise<DatabaseLocation> =>

@@ -35,6 +35,25 @@ interface AiActivity {
   toolName?: string
 }
 
+interface ChatDeltaEvent {
+  conversationId: string
+  text: string
+}
+
+interface ChatActivityEvent {
+  conversationId: string
+  activity: AiActivity
+}
+
+interface ChatCompleteEvent {
+  conversationId: string
+}
+
+interface ChatErrorEvent {
+  conversationId: string
+  errorMessage: string
+}
+
 interface DatabaseLocation {
   directory: string
   databasePath: string
@@ -51,6 +70,10 @@ interface ActiveUser {
   preferredName: string
 }
 
+interface UserSummary extends ActiveUser {
+  isActive: boolean
+}
+
 interface CreateUserInput {
   name: string
   gender: UserGender
@@ -65,10 +88,10 @@ interface ChatApi {
   toggleConversationPinned: (conversationId: string) => Promise<void>
   archiveConversation: (conversationId: string) => Promise<void>
   getMessagePage: (conversationId: string, beforeCursor?: number) => Promise<ChatMessagePage>
-  onDelta: (callback: (text: string) => void) => () => void
-  onActivity: (callback: (activity: AiActivity) => void) => () => void
-  onComplete: (callback: () => void) => () => void
-  onError: (callback: (message: string) => void) => () => void
+  onDelta: (callback: (event: ChatDeltaEvent) => void) => () => void
+  onActivity: (callback: (event: ChatActivityEvent) => void) => () => void
+  onComplete: (callback: (event: ChatCompleteEvent) => void) => () => void
+  onError: (callback: (event: ChatErrorEvent) => void) => () => void
 }
 
 interface SettingsApi {
@@ -80,6 +103,12 @@ interface SettingsApi {
 interface UserApi {
   getActive: () => Promise<ActiveUser | undefined>
   createInitial: (input: CreateUserInput) => Promise<ActiveUser>
+  list: () => Promise<UserSummary[]>
+  create: (input: CreateUserInput) => Promise<ActiveUser>
+  update: (userId: number, input: CreateUserInput) => Promise<UserSummary>
+  switch: (userId: number) => Promise<ActiveUser>
+  delete: (userId: number) => Promise<void>
+  onActiveChange: (callback: (user: ActiveUser) => void) => () => void
 }
 
 declare global {

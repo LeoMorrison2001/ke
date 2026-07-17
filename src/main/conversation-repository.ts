@@ -64,6 +64,14 @@ const ensureConversationOwnedBy = (conversationId: string, userId: number): void
   if (!row || row.creator_id !== userId) throw new Error('无权访问该对话。')
 }
 
+export const getConversationOwnerId = (conversationId: string): number => {
+  const row = getDatabase()
+    .prepare('SELECT creator_id FROM conversations WHERE id = ?')
+    .get(conversationId) as { creator_id: number } | undefined
+  if (!row) throw new Error('对话不存在。')
+  return row.creator_id
+}
+
 const ensureConversationActive = (conversationId: string, userId: number): void => {
   const row = getDatabase()
     .prepare('SELECT creator_id, is_archived FROM conversations WHERE id = ?')
@@ -129,27 +137,27 @@ export const saveUserMessage = (conversationId: string, content: string): Conver
 
 export const saveAssistantMessage = (
   conversationId: string,
-  content: string
+  content: string,
+  userId = requireActiveUser().id
 ): ConversationMessage => {
   const database = getDatabase()
-  const activeUser = requireActiveUser()
   const now = new Date()
   const messageId = randomUUID()
   const createdTime = formatTime(now)
 
   try {
     database.exec('BEGIN IMMEDIATE;')
-    ensureConversationOwnedBy(conversationId, activeUser.id)
+    ensureConversationOwnedBy(conversationId, userId)
     database
       .prepare(
         `INSERT INTO conversation_memories
           (id, conversation_id, creator_id, role, content, created_time)
          VALUES (?, ?, ?, 'assistant', ?, ?)`
       )
-      .run(messageId, conversationId, activeUser.id, content, createdTime)
+      .run(messageId, conversationId, userId, content, createdTime)
     database
       .prepare('UPDATE conversations SET updated_at = ? WHERE id = ? AND creator_id = ?')
-      .run(now.getTime(), conversationId, activeUser.id)
+      .run(now.getTime(), conversationId, userId)
     database.exec('COMMIT;')
   } catch (error) {
     try {
@@ -256,9 +264,9 @@ export const getConversationMessagePage = (
 }
 
 export const getConversationMessagesForModel = (
-  conversationId: string
+  conversationId: string,
+  userId = requireActiveUser().id
 ): Array<Pick<ConversationMessage, 'role' | 'content'>> => {
-  const activeUser = requireActiveUser()
   const rows = getDatabase()
     .prepare(
       `SELECT role, content
@@ -266,7 +274,7 @@ export const getConversationMessagesForModel = (
        WHERE conversation_id = ? AND creator_id = ?
        ORDER BY rowid ASC`
     )
-    .all(conversationId, activeUser.id) as Array<Pick<ConversationMessage, 'role' | 'content'>>
+    .all(conversationId, userId) as Array<Pick<ConversationMessage, 'role' | 'content'>>
 
   return rows
 }

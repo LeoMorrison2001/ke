@@ -2,6 +2,7 @@
 import { ArrowLeft } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import UserInformationPanel from './UserInformationPanel.vue'
 
 interface MemoryMenuItem {
   title: string
@@ -49,8 +50,12 @@ const openSection = (section: MemoryMenuItem['section']): void => {
           {{ item.title }}
         </button>
       </nav>
-      <section class="memory-content" :aria-label="activeMenuItem?.title">
-        <p>{{ activeMenuItem?.title }}</p>
+      <section
+        :class="['memory-content', { 'memory-content--panel': activeSection === 'profile' }]"
+        :aria-label="activeMenuItem?.title"
+      >
+        <UserInformationPanel v-if="activeSection === 'profile'" />
+        <p v-else>{{ activeMenuItem?.title }}</p>
       </section>
     </main>
   </section>
@@ -156,6 +161,12 @@ h1 {
   color: inherit;
   font-size: 20px;
   font-weight: 600;
+}
+
+.memory-content--panel {
+  display: block;
+  overflow: auto;
+  width: 100%;
 }
 
 @media (max-width: 640px) {
