@@ -44,7 +44,9 @@ onUnmounted(() => {
         </button>
       </div>
     </header>
-    <main class="content"></main>
+    <main class="content">
+      <RouterView />
+    </main>
   </div>
 </template>
 
