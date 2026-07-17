@@ -499,16 +499,6 @@ ul {
   opacity: 0.45;
 }
 
-.modal-backdrop {
-  display: grid;
-  position: absolute;
-  z-index: 5;
-  inset: 0;
-  padding: 24px;
-  place-items: center;
-  background: rgb(0 0 0 / 35%);
-}
-
 .archive-dialog {
   box-sizing: border-box;
   width: min(360px, 100%);

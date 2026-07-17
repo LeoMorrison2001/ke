@@ -144,7 +144,7 @@ onBeforeUnmount(() => {
     </div>
     <p v-if="errorMessage && !selectedConversation" class="page-error">{{ errorMessage }}</p>
 
-    <div v-if="selectedConversation" class="dialog-backdrop" @click.self="closeDialog">
+    <div v-if="selectedConversation" class="modal-backdrop" @click.self="closeDialog">
       <section
         class="dialog"
         aria-modal="true"
@@ -258,15 +258,6 @@ tbody tr:last-child td {
   margin: 0 20px 12px;
   color: #c44040;
   font-size: 13px;
-}
-.dialog-backdrop {
-  position: fixed;
-  z-index: 10;
-  inset: 0;
-  display: grid;
-  padding: 20px;
-  place-items: center;
-  background: rgb(15 23 42 / 35%);
 }
 .dialog {
   display: grid;

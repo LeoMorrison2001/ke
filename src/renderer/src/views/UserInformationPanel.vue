@@ -184,7 +184,7 @@ onMounted(() => {
       </table>
     </div>
 
-    <div v-if="dialogType" class="dialog-backdrop" @click.self="dismissDialog">
+    <div v-if="dialogType" class="modal-backdrop" @click.self="dismissDialog">
       <section class="dialog" :aria-label="dialogTitle" role="dialog" aria-modal="true">
         <h2>{{ dialogTitle }}</h2>
 
@@ -374,16 +374,6 @@ tbody tr:last-child td {
   padding: 30px;
   color: #8993a1;
   text-align: center;
-}
-
-.dialog-backdrop {
-  position: fixed;
-  z-index: 10;
-  inset: 0;
-  display: grid;
-  padding: 20px;
-  place-items: center;
-  background: rgb(15 23 42 / 35%);
 }
 
 .dialog {

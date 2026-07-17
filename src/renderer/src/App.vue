@@ -79,10 +79,21 @@ button {
 }
 
 .app-window {
+  --modal-backdrop-color: rgb(0 0 0 / 40%);
   display: flex;
   flex-direction: column;
   height: 100%;
   background: #f5f5f5;
+}
+
+.modal-backdrop {
+  position: fixed;
+  z-index: 10;
+  inset: 32px 0 0;
+  display: grid;
+  padding: 20px;
+  place-items: center;
+  background: var(--modal-backdrop-color);
 }
 
 .titlebar {
@@ -342,6 +353,106 @@ html[data-theme='dark'] .memory-menu button:hover {
 
 html[data-theme='dark'] .memory-menu button.active {
   color: #a8d8b5;
+  background: #253d2d;
+}
+
+html[data-theme='dark'] .diary-content {
+  border-color: #303030;
+}
+
+html[data-theme='dark'] .diary-menu {
+  background: #181818;
+}
+
+html[data-theme='dark'] .diary-menu button {
+  color: #aeb7c3;
+}
+
+html[data-theme='dark'] .diary-menu button:hover {
+  background: #303030;
+}
+
+html[data-theme='dark'] .diary-menu button.active {
+  color: #a8d8b5;
+  background: #253d2d;
+}
+
+html[data-theme='dark'] .memory-content table {
+  color: #d8dee8;
+  border-color: #303030;
+}
+
+html[data-theme='dark'] .memory-content table th {
+  color: #aeb7c3;
+  border-color: #303030;
+  background: #202020;
+}
+
+html[data-theme='dark'] .memory-content table td {
+  border-color: #303030;
+}
+
+html[data-theme='dark'] .memory-content .row-actions button,
+html[data-theme='dark'] .memory-content .status,
+html[data-theme='dark'] .memory-content .empty-cell {
+  color: #aeb7c3;
+}
+
+html[data-theme='dark'] .memory-content .status.active,
+html[data-theme='dark'] .memory-content .row-actions button:hover {
+  color: #8ed3a2;
+}
+
+html[data-theme='dark'] .memory-content .primary-button {
+  color: #fff;
+  border-color: #3d8058;
+  background: #3d8058;
+}
+
+html[data-theme='dark'] .memory-content .primary-button:hover {
+  background: #34704c;
+}
+
+html[data-theme='dark'] .memory-content .dialog {
+  color: #e4e8ee;
+  background: #181818;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 45%);
+}
+
+html[data-theme='dark'] .memory-content .dialog header {
+  border-color: #303030;
+}
+
+html[data-theme='dark'] .memory-content .dialog > p,
+html[data-theme='dark'] .memory-content .dialog header p,
+html[data-theme='dark'] .memory-content .dialog label {
+  color: #aeb7c3;
+}
+
+html[data-theme='dark'] .memory-content .dialog h2 {
+  color: #e4e8ee;
+}
+
+html[data-theme='dark'] .memory-content .dialog input,
+html[data-theme='dark'] .memory-content .dialog select,
+html[data-theme='dark'] .memory-content .dialog .outline-button {
+  color: #d8dee8;
+  border-color: #303030;
+  background: #202020;
+}
+
+html[data-theme='dark'] .memory-content .dialog .outline-button:hover,
+html[data-theme='dark'] .memory-content .dialog .close-button:hover {
+  background: #303030;
+}
+
+html[data-theme='dark'] .memory-content .dialog article.assistant {
+  color: #e4e8ee;
+  background: #252525;
+}
+
+html[data-theme='dark'] .memory-content .dialog article.user {
+  color: #e4e8ee;
   background: #253d2d;
 }
 
