@@ -28,6 +28,7 @@ import {
   saveUserMessage,
   toggleConversationPinned
 } from './conversation-repository'
+import { createInitialUser, getActiveUser, type CreateUserInput } from './user-repository'
 
 const chatProvider = createOpenAICompatible({
   name: 'liangrekui',
@@ -144,6 +145,12 @@ app.whenReady().then(() => {
 
   ipcMain.handle('window:is-maximized', (event) => {
     return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false
+  })
+
+  ipcMain.handle('user:get-active', () => getActiveUser())
+
+  ipcMain.handle('user:create-initial', (_event, input: CreateUserInput) => {
+    return createInitialUser(input)
   })
 
   ipcMain.handle('chat:save-user-message', (_event, conversationId: string, content: string) => {

@@ -13,7 +13,7 @@ import { app } from 'electron'
 
 const DATABASE_DIRECTORY_NAME = 'data'
 const DATABASE_FILE_NAME = 'ke.sqlite'
-const DATABASE_SCHEMA_VERSION = 2
+const DATABASE_SCHEMA_VERSION = 3
 const STORAGE_SETTINGS_FILE_NAME = 'storage-settings.json'
 
 let database: DatabaseSync | undefined
@@ -39,7 +39,7 @@ const applySchema = (connection: DatabaseSync): void => {
 
       CREATE TABLE IF NOT EXISTS conversations (
         id TEXT PRIMARY KEY,
-        creator_id INTEGER NOT NULL DEFAULT 1,
+        creator_id INTEGER NOT NULL,
         title TEXT NOT NULL DEFAULT '',
         conversation_date TEXT NOT NULL,
         created_time TEXT NOT NULL,
@@ -47,10 +47,21 @@ const applySchema = (connection: DatabaseSync): void => {
         is_pinned INTEGER NOT NULL DEFAULT 0
       );
 
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        gender TEXT NOT NULL CHECK (gender IN ('male', 'female')),
+        birth_date TEXT NOT NULL,
+        preferred_name TEXT NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
       CREATE TABLE IF NOT EXISTS conversation_memories (
         id TEXT PRIMARY KEY,
         conversation_id TEXT NOT NULL,
-        creator_id INTEGER NOT NULL DEFAULT 1,
+        creator_id INTEGER NOT NULL,
         role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
         content TEXT NOT NULL,
         created_time TEXT NOT NULL,
@@ -61,7 +72,7 @@ const applySchema = (connection: DatabaseSync): void => {
         ON conversations(updated_at DESC);
 
       ${
-        currentVersion.user_version >= 1
+        currentVersion.user_version === 1
           ? 'ALTER TABLE conversations ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0;'
           : ''
       }
@@ -71,6 +82,9 @@ const applySchema = (connection: DatabaseSync): void => {
 
       CREATE INDEX IF NOT EXISTS idx_conversation_memories_conversation_time
         ON conversation_memories(conversation_id, created_time DESC);
+
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_only_one_active
+        ON users(is_active) WHERE is_active = 1;
 
       PRAGMA user_version = ${DATABASE_SCHEMA_VERSION};
       COMMIT;

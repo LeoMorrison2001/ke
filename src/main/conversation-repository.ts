@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { getDatabase } from './database'
+import { requireActiveUser } from './user-repository'
 
-const DEFAULT_CREATOR_ID = 1
 const MESSAGE_PAGE_SIZE = 10
 
 export interface ConversationSummary {
@@ -57,8 +57,16 @@ const toConversationMessage = (row: ConversationMessageRow): ConversationMessage
   cursor: Number(row.cursor)
 })
 
+const ensureConversationOwnedBy = (conversationId: string, userId: number): void => {
+  const row = getDatabase()
+    .prepare('SELECT creator_id FROM conversations WHERE id = ?')
+    .get(conversationId) as { creator_id: number } | undefined
+  if (!row || row.creator_id !== userId) throw new Error('无权访问该对话。')
+}
+
 export const saveUserMessage = (conversationId: string, content: string): ConversationMessage => {
   const database = getDatabase()
+  const activeUser = requireActiveUser()
   const now = new Date()
   const messageId = randomUUID()
   const conversationDate = formatDate(now)
@@ -74,22 +82,23 @@ export const saveUserMessage = (conversationId: string, content: string): Conver
       )
       .run(
         conversationId,
-        DEFAULT_CREATOR_ID,
+        activeUser.id,
         createTitle(content),
         conversationDate,
         createdTime,
         now.getTime()
       )
+    ensureConversationOwnedBy(conversationId, activeUser.id)
     database
       .prepare(
         `INSERT INTO conversation_memories
           (id, conversation_id, creator_id, role, content, created_time)
          VALUES (?, ?, ?, 'user', ?, ?)`
       )
-      .run(messageId, conversationId, DEFAULT_CREATOR_ID, content, createdTime)
+      .run(messageId, conversationId, activeUser.id, content, createdTime)
     database
-      .prepare('UPDATE conversations SET updated_at = ? WHERE id = ?')
-      .run(now.getTime(), conversationId)
+      .prepare('UPDATE conversations SET updated_at = ? WHERE id = ? AND creator_id = ?')
+      .run(now.getTime(), conversationId, activeUser.id)
     database.exec('COMMIT;')
   } catch (error) {
     try {
@@ -115,22 +124,24 @@ export const saveAssistantMessage = (
   content: string
 ): ConversationMessage => {
   const database = getDatabase()
+  const activeUser = requireActiveUser()
   const now = new Date()
   const messageId = randomUUID()
   const createdTime = formatTime(now)
 
   try {
     database.exec('BEGIN IMMEDIATE;')
+    ensureConversationOwnedBy(conversationId, activeUser.id)
     database
       .prepare(
         `INSERT INTO conversation_memories
           (id, conversation_id, creator_id, role, content, created_time)
          VALUES (?, ?, ?, 'assistant', ?, ?)`
       )
-      .run(messageId, conversationId, DEFAULT_CREATOR_ID, content, createdTime)
+      .run(messageId, conversationId, activeUser.id, content, createdTime)
     database
-      .prepare('UPDATE conversations SET updated_at = ? WHERE id = ?')
-      .run(now.getTime(), conversationId)
+      .prepare('UPDATE conversations SET updated_at = ? WHERE id = ? AND creator_id = ?')
+      .run(now.getTime(), conversationId, activeUser.id)
     database.exec('COMMIT;')
   } catch (error) {
     try {
@@ -152,13 +163,15 @@ export const saveAssistantMessage = (
 }
 
 export const listConversations = (): ConversationSummary[] => {
+  const activeUser = requireActiveUser()
   const rows = getDatabase()
     .prepare(
       `SELECT id, title, conversation_date, created_time, is_pinned
        FROM conversations
+       WHERE creator_id = ?
        ORDER BY is_pinned DESC, updated_at DESC`
     )
-    .all() as Array<{
+    .all(activeUser.id) as Array<{
     id: string
     title: string
     conversation_date: string
@@ -176,18 +189,22 @@ export const listConversations = (): ConversationSummary[] => {
 }
 
 export const toggleConversationPinned = (conversationId: string): void => {
+  const activeUser = requireActiveUser()
   getDatabase()
     .prepare(
       `UPDATE conversations
        SET is_pinned = CASE WHEN is_pinned = 1 THEN 0 ELSE 1 END,
            updated_at = ?
-       WHERE id = ?`
+       WHERE id = ? AND creator_id = ?`
     )
-    .run(Date.now(), conversationId)
+    .run(Date.now(), conversationId, activeUser.id)
 }
 
 export const deleteConversation = (conversationId: string): void => {
-  getDatabase().prepare('DELETE FROM conversations WHERE id = ?').run(conversationId)
+  const activeUser = requireActiveUser()
+  getDatabase()
+    .prepare('DELETE FROM conversations WHERE id = ? AND creator_id = ?')
+    .run(conversationId, activeUser.id)
 }
 
 export const getConversationMessagePage = (
@@ -195,22 +212,29 @@ export const getConversationMessagePage = (
   beforeCursor?: number
 ): ConversationMessagePage => {
   const database = getDatabase()
+  const activeUser = requireActiveUser()
   const query = beforeCursor
     ? `SELECT id, role, content, created_time, rowid AS cursor
        FROM conversation_memories
-       WHERE conversation_id = ? AND rowid < ?
+       WHERE conversation_id = ? AND creator_id = ? AND rowid < ?
        ORDER BY rowid DESC
        LIMIT ?`
     : `SELECT id, role, content, created_time, rowid AS cursor
        FROM conversation_memories
-       WHERE conversation_id = ?
+       WHERE conversation_id = ? AND creator_id = ?
        ORDER BY rowid DESC
        LIMIT ?`
   const rows = (beforeCursor
-    ? database.prepare(query).all(conversationId, beforeCursor, MESSAGE_PAGE_SIZE + 1)
+    ? database
+        .prepare(query)
+        .all(conversationId, activeUser.id, beforeCursor, MESSAGE_PAGE_SIZE + 1)
     : database
         .prepare(query)
-        .all(conversationId, MESSAGE_PAGE_SIZE + 1)) as unknown as ConversationMessageRow[]
+        .all(
+          conversationId,
+          activeUser.id,
+          MESSAGE_PAGE_SIZE + 1
+        )) as unknown as ConversationMessageRow[]
   const hasMore = rows.length > MESSAGE_PAGE_SIZE
 
   return {
@@ -222,14 +246,15 @@ export const getConversationMessagePage = (
 export const getConversationMessagesForModel = (
   conversationId: string
 ): Array<Pick<ConversationMessage, 'role' | 'content'>> => {
+  const activeUser = requireActiveUser()
   const rows = getDatabase()
     .prepare(
       `SELECT role, content
        FROM conversation_memories
-       WHERE conversation_id = ?
+       WHERE conversation_id = ? AND creator_id = ?
        ORDER BY rowid ASC`
     )
-    .all(conversationId) as Array<Pick<ConversationMessage, 'role' | 'content'>>
+    .all(conversationId, activeUser.id) as Array<Pick<ConversationMessage, 'role' | 'content'>>
 
   return rows
 }

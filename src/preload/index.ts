@@ -28,6 +28,23 @@ interface DatabaseLocation {
   isDefault: boolean
 }
 
+type UserGender = 'male' | 'female'
+
+interface ActiveUser {
+  id: number
+  name: string
+  gender: UserGender
+  birthDate: string
+  preferredName: string
+}
+
+interface CreateUserInput {
+  name: string
+  gender: UserGender
+  birthDate: string
+  preferredName: string
+}
+
 // Custom APIs for renderer
 const api = {
   windowControls: {
@@ -81,6 +98,11 @@ const api = {
         ipcRenderer.removeListener('chat:error', listener)
       }
     }
+  },
+  user: {
+    getActive: (): Promise<ActiveUser | undefined> => ipcRenderer.invoke('user:get-active'),
+    createInitial: (input: CreateUserInput): Promise<ActiveUser> =>
+      ipcRenderer.invoke('user:create-initial', input)
   },
   settings: {
     getDatabaseLocation: (): Promise<DatabaseLocation> =>

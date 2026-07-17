@@ -35,6 +35,23 @@ interface DatabaseLocation {
   isDefault: boolean
 }
 
+type UserGender = 'male' | 'female'
+
+interface ActiveUser {
+  id: number
+  name: string
+  gender: UserGender
+  birthDate: string
+  preferredName: string
+}
+
+interface CreateUserInput {
+  name: string
+  gender: UserGender
+  birthDate: string
+  preferredName: string
+}
+
 interface ChatApi {
   saveUserMessage: (conversationId: string, content: string) => Promise<ChatMessage>
   send: (conversationId: string) => Promise<void>
@@ -53,12 +70,18 @@ interface SettingsApi {
   migrateDatabaseDirectory: (targetDirectory: string) => Promise<DatabaseLocation | undefined>
 }
 
+interface UserApi {
+  getActive: () => Promise<ActiveUser | undefined>
+  createInitial: (input: CreateUserInput) => Promise<ActiveUser>
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
     api: {
       windowControls: WindowControls
       chat: ChatApi
+      user: UserApi
       settings: SettingsApi
     }
   }
