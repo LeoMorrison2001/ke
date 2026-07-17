@@ -3,7 +3,9 @@ import { ArrowUp, Menu, Plus, Zap } from 'lucide-vue-next'
 import { ref } from 'vue'
 
 const message = ref('')
+const isDrawerOpen = ref(false)
 const maxComposerHeight = 180
+const historyMessages = ['欢迎使用小可', '新对话']
 
 const resizeComposer = (event: Event): void => {
   const textarea = event.target as HTMLTextAreaElement
@@ -19,7 +21,12 @@ const resizeComposer = (event: Event): void => {
   <section class="home-view">
     <header class="console">
       <div class="console__left">
-        <button aria-label="打开抽屉" class="drawer-button" type="button">
+        <button
+          aria-label="打开抽屉"
+          class="drawer-button"
+          type="button"
+          @click="isDrawerOpen = !isDrawerOpen"
+        >
           <Menu :size="19" :stroke-width="1.8" />
         </button>
       </div>
@@ -52,13 +59,30 @@ const resizeComposer = (event: Event): void => {
         </div>
       </div>
     </footer>
+
+    <div v-if="isDrawerOpen" class="drawer-backdrop" @click="isDrawerOpen = false"></div>
+    <Transition name="drawer">
+      <aside v-if="isDrawerOpen" class="history-drawer" @click.stop>
+        <div aria-label="功能区域" class="history-drawer__tools"></div>
+        <div class="history-drawer__content">
+          <h2>历史消息</h2>
+          <ul>
+            <li v-for="historyMessage in historyMessages" :key="historyMessage">
+              <button type="button">{{ historyMessage }}</button>
+            </li>
+          </ul>
+        </div>
+      </aside>
+    </Transition>
   </section>
 </template>
 
 <style scoped>
 .home-view {
   display: grid;
+  position: relative;
   height: 100%;
+  overflow: hidden;
   color: #252525;
   grid-template-rows: auto minmax(0, 1fr) auto;
   background: #fff;
@@ -109,6 +133,73 @@ const resizeComposer = (event: Event): void => {
   padding: 0 9px;
   border-radius: 7px;
   font-size: 13px;
+}
+
+.drawer-backdrop {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: rgb(0 0 0 / 12%);
+}
+
+.history-drawer {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: clamp(280px, 30vw, 360px);
+  background: #f5f5f5;
+  box-shadow: 8px 0 24px rgb(0 0 0 / 12%);
+}
+
+.history-drawer__tools {
+  height: 48px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.history-drawer__content {
+  padding: 18px 12px;
+}
+
+h2 {
+  margin: 0 0 10px;
+  padding: 0 8px;
+  color: #777;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+li button {
+  display: block;
+  width: 100%;
+  padding: 9px 8px;
+  overflow: hidden;
+  color: #303030;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 7px;
+}
+
+li button:hover {
+  background: #e8e8e8;
+}
+
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: transform 180ms ease;
+}
+
+.drawer-enter-from,
+.drawer-leave-to {
+  transform: translateX(-100%);
 }
 
 .chat-area {
