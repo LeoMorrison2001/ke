@@ -27,6 +27,7 @@ onUnmounted(() => {
 <template>
   <div class="app-window">
     <header class="titlebar">
+      <span class="window-title">小可</span>
       <div class="window-controls">
         <button aria-label="最小化" class="window-control" type="button" @click="minimize">
           <Minus :size="16" :stroke-width="1.8" />
@@ -79,8 +80,15 @@ button {
   display: flex;
   flex: 0 0 32px;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
+  padding-left: 12px;
   -webkit-app-region: drag;
+}
+
+.window-title {
+  color: #4a4a4a;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .window-controls {

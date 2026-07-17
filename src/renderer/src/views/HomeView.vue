@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowUp, Zap } from 'lucide-vue-next'
+import { ArrowUp, Menu, Plus, Zap } from 'lucide-vue-next'
 import { ref } from 'vue'
 
 const message = ref('')
@@ -18,8 +18,15 @@ const resizeComposer = (event: Event): void => {
 <template>
   <section class="home-view">
     <header class="console">
-      <h1>控制台</h1>
-      <span class="console__status"><i></i> 已就绪</span>
+      <div class="console__left">
+        <button aria-label="打开抽屉" class="drawer-button" type="button">
+          <Menu :size="19" :stroke-width="1.8" />
+        </button>
+      </div>
+      <button class="new-chat-button" type="button">
+        <Plus :size="17" :stroke-width="2" />
+        新对话
+      </button>
     </header>
 
     <main class="chat-area">
@@ -61,32 +68,47 @@ const resizeComposer = (event: Event): void => {
   display: flex;
   box-sizing: border-box;
   min-height: 48px;
-  padding: 7px 18px;
+  padding: 7px 12px;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #efefef;
   background: #fff;
 }
 
-h1 {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-}
-
-.console__status {
-  display: inline-flex;
-  gap: 7px;
+.console__left {
+  display: flex;
   align-items: center;
-  color: #5b9f5d;
-  font-size: 13px;
 }
 
-.console__status i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #63ae67;
+.drawer-button,
+.new-chat-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #4a4a4a;
+  cursor: pointer;
+  font: inherit;
+  border: 0;
+  background: transparent;
+}
+
+.drawer-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+}
+
+.drawer-button:hover,
+.new-chat-button:hover {
+  background: #f3f3f3;
+}
+
+.new-chat-button {
+  gap: 5px;
+  height: 30px;
+  padding: 0 9px;
+  border-radius: 7px;
+  font-size: 13px;
 }
 
 .chat-area {
@@ -110,7 +132,7 @@ h1 {
 }
 
 .composer-wrap {
-  padding: 12px 6px 32px;
+  padding: 12px 6px 12px;
 }
 
 .composer {
