@@ -402,7 +402,7 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
   bottom: 0;
   left: 0;
   width: clamp(280px, 30vw, 360px);
-  background: var(--color-surface);
+  background: var(--color-titlebar);
   box-shadow: 8px 0 24px rgb(0 0 0 / 12%);
 }
 
@@ -422,6 +422,12 @@ ul {
   padding: 0;
   margin: 0;
   list-style: none;
+}
+
+.history-drawer ul {
+  display: flex;
+  gap: 4px;
+  flex-direction: column;
 }
 
 .history-list-item {

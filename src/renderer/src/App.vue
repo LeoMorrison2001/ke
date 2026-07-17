@@ -71,6 +71,7 @@ body,
 }
 
 :root {
+  --color-titlebar: #f5f5f5;
   --color-page: #fff;
   --color-surface: #fff;
   --color-surface-muted: #f8f9fa;
@@ -93,7 +94,8 @@ body,
 }
 
 html[data-theme='dark'] {
-  --color-page: #141414;
+  --color-titlebar: #141414;
+  --color-page: #181818;
   --color-surface: #181818;
   --color-surface-muted: #202020;
   --color-surface-hover: #303030;
@@ -147,6 +149,8 @@ button {
   align-items: center;
   justify-content: space-between;
   padding-left: 12px;
+  border-bottom: 0;
+  background: var(--color-titlebar);
   -webkit-app-region: drag;
 }
 
@@ -198,25 +202,20 @@ button {
 
 html[data-theme='dark'] .app-window {
   color: #e4e8ee;
-  background: #141414;
+  background: var(--color-page);
 }
 
-html[data-theme='dark'] .titlebar,
 html[data-theme='dark'] .content,
 html[data-theme='dark'] .home-view,
 html[data-theme='dark'] .settings-view,
 html[data-theme='dark'] .page-view {
   color: #e4e8ee;
-  background: #141414;
+  background: var(--color-page);
 }
 
 html[data-theme='dark'] .console {
   color: #e4e8ee;
   background: #181818;
-}
-
-html[data-theme='dark'] .titlebar {
-  border-bottom: 1px solid #242424;
 }
 
 html[data-theme='dark'] .window-title,
@@ -255,7 +254,7 @@ html[data-theme='dark'] .page-toolbar button {
 }
 
 html[data-theme='dark'] .history-drawer {
-  background: #181818;
+  background: var(--color-titlebar);
   box-shadow: 8px 0 24px rgb(0 0 0 / 35%);
 }
 

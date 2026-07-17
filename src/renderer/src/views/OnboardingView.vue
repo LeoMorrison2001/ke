@@ -642,7 +642,7 @@ const createUser = async (): Promise<void> => {
 
 html[data-theme='dark'] .onboarding-view {
   color: #e4e8ee;
-  background: #141414;
+  background: var(--color-page);
 }
 
 html[data-theme='dark'] .onboarding-content h1 {
