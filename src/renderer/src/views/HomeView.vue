@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ArrowUp, Menu, Plus, Zap } from 'lucide-vue-next'
+import { ArrowUp, LayoutGrid, Menu, Plus, Settings, Zap } from 'lucide-vue-next'
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const message = ref('')
 const isDrawerOpen = ref(false)
 const maxComposerHeight = 180
 const historyMessages = ['欢迎使用小可', '新对话']
+const router = useRouter()
 
 const resizeComposer = (event: Event): void => {
   const textarea = event.target as HTMLTextAreaElement
@@ -30,10 +32,28 @@ const resizeComposer = (event: Event): void => {
           <Menu :size="19" :stroke-width="1.8" />
         </button>
       </div>
-      <button class="new-chat-button" type="button">
-        <Plus :size="17" :stroke-width="2" />
-        新对话
-      </button>
+      <div class="console__actions">
+        <button class="new-chat-button" type="button">
+          <Plus :size="17" :stroke-width="2" />
+          新对话
+        </button>
+        <button
+          aria-label="应用"
+          class="header-icon-button"
+          type="button"
+          @click="router.push({ name: 'applications' })"
+        >
+          <LayoutGrid :size="18" :stroke-width="1.8" />
+        </button>
+        <button
+          aria-label="设置"
+          class="header-icon-button"
+          type="button"
+          @click="router.push({ name: 'settings' })"
+        >
+          <Settings :size="18" :stroke-width="1.8" />
+        </button>
+      </div>
     </header>
 
     <main class="chat-area">
@@ -63,7 +83,6 @@ const resizeComposer = (event: Event): void => {
     <div v-if="isDrawerOpen" class="drawer-backdrop" @click="isDrawerOpen = false"></div>
     <Transition name="drawer">
       <aside v-if="isDrawerOpen" class="history-drawer" @click.stop>
-        <div aria-label="功能区域" class="history-drawer__tools"></div>
         <div class="history-drawer__content">
           <h2>历史消息</h2>
           <ul>
@@ -116,6 +135,29 @@ const resizeComposer = (event: Event): void => {
   background: transparent;
 }
 
+.console__actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.header-icon-button {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  color: #4a4a4a;
+  cursor: pointer;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+}
+
+.header-icon-button:hover {
+  background: #f3f3f3;
+}
+
 .drawer-button {
   width: 30px;
   height: 30px;
@@ -151,11 +193,6 @@ const resizeComposer = (event: Event): void => {
   width: clamp(280px, 30vw, 360px);
   background: #f5f5f5;
   box-shadow: 8px 0 24px rgb(0 0 0 / 12%);
-}
-
-.history-drawer__tools {
-  height: 48px;
-  border-bottom: 1px solid #e5e5e5;
 }
 
 .history-drawer__content {
