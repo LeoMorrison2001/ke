@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Copy, Minus, Square, X } from 'lucide-vue-next'
 import { onMounted, onUnmounted, ref } from 'vue'
+import titlebarLogo from '../../../resources/icon.png'
 import { applyTheme, watchSystemTheme } from './theme'
 
 const {
@@ -32,7 +33,10 @@ onUnmounted(() => {
 <template>
   <div class="app-window">
     <header class="titlebar">
-      <span class="window-title">小可</span>
+      <div class="window-identity">
+        <img :src="titlebarLogo" alt="" class="window-logo" />
+        <span class="window-title">小可</span>
+      </div>
       <div class="window-controls">
         <button aria-label="最小化" class="window-control" type="button" @click="minimize">
           <Minus :size="16" :stroke-width="1.8" />
@@ -94,6 +98,18 @@ button {
   color: #4a4a4a;
   font-size: 15px;
   font-weight: 600;
+}
+
+.window-identity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.window-logo {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 
 .window-controls {
