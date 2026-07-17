@@ -78,8 +78,8 @@ const api = {
       ipcRenderer.invoke('chat:list-conversations'),
     toggleConversationPinned: (conversationId: string): Promise<void> =>
       ipcRenderer.invoke('chat:toggle-conversation-pinned', conversationId),
-    deleteConversation: (conversationId: string): Promise<void> =>
-      ipcRenderer.invoke('chat:delete-conversation', conversationId),
+    archiveConversation: (conversationId: string): Promise<void> =>
+      ipcRenderer.invoke('chat:archive-conversation', conversationId),
     getMessagePage: (conversationId: string, beforeCursor?: number): Promise<ChatMessagePage> =>
       ipcRenderer.invoke('chat:get-message-page', conversationId, beforeCursor),
     onDelta: (callback: (text: string) => void): (() => void) => {

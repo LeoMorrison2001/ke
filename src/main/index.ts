@@ -18,7 +18,7 @@ import {
   migrateDatabaseDirectory
 } from './database'
 import {
-  deleteConversation,
+  archiveConversation,
   getConversationMessagePage,
   listConversations,
   saveUserMessage,
@@ -143,8 +143,8 @@ app.whenReady().then(() => {
     return toggleConversationPinned(conversationId)
   })
 
-  ipcMain.handle('chat:delete-conversation', (_event, conversationId: string) => {
-    return deleteConversation(conversationId)
+  ipcMain.handle('chat:archive-conversation', (_event, conversationId: string) => {
+    return archiveConversation(conversationId)
   })
 
   ipcMain.handle(

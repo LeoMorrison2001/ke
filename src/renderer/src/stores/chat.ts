@@ -136,9 +136,9 @@ export const useChatStore = defineStore('chat', () => {
     await refreshConversations()
   }
 
-  const deleteConversation = async (conversationId: string): Promise<void> => {
+  const archiveConversation = async (conversationId: string): Promise<void> => {
     if (isSending.value) return
-    await window.api.chat.deleteConversation(conversationId)
+    await window.api.chat.archiveConversation(conversationId)
     if (conversationId === currentConversationId.value) resetConversation()
     await refreshConversations()
   }
@@ -189,6 +189,6 @@ export const useChatStore = defineStore('chat', () => {
     sendMessage,
     startNewConversation,
     togglePinnedConversation,
-    deleteConversation
+    archiveConversation
   }
 })

@@ -64,6 +64,14 @@ const ensureConversationOwnedBy = (conversationId: string, userId: number): void
   if (!row || row.creator_id !== userId) throw new Error('无权访问该对话。')
 }
 
+const ensureConversationActive = (conversationId: string, userId: number): void => {
+  const row = getDatabase()
+    .prepare('SELECT creator_id, is_archived FROM conversations WHERE id = ?')
+    .get(conversationId) as { creator_id: number; is_archived: number } | undefined
+  if (!row || row.creator_id !== userId) throw new Error('无权访问该对话。')
+  if (row.is_archived === 1) throw new Error('该对话已归档，恢复后才能继续发送消息。')
+}
+
 export const saveUserMessage = (conversationId: string, content: string): ConversationMessage => {
   const database = getDatabase()
   const activeUser = requireActiveUser()
@@ -88,7 +96,7 @@ export const saveUserMessage = (conversationId: string, content: string): Conver
         createdTime,
         now.getTime()
       )
-    ensureConversationOwnedBy(conversationId, activeUser.id)
+    ensureConversationActive(conversationId, activeUser.id)
     database
       .prepare(
         `INSERT INTO conversation_memories
@@ -168,7 +176,7 @@ export const listConversations = (): ConversationSummary[] => {
     .prepare(
       `SELECT id, title, conversation_date, created_time, is_pinned
        FROM conversations
-       WHERE creator_id = ?
+       WHERE creator_id = ? AND is_archived = 0
        ORDER BY is_pinned DESC, updated_at DESC`
     )
     .all(activeUser.id) as Array<{
@@ -200,11 +208,15 @@ export const toggleConversationPinned = (conversationId: string): void => {
     .run(Date.now(), conversationId, activeUser.id)
 }
 
-export const deleteConversation = (conversationId: string): void => {
+export const archiveConversation = (conversationId: string): void => {
   const activeUser = requireActiveUser()
   getDatabase()
-    .prepare('DELETE FROM conversations WHERE id = ? AND creator_id = ?')
-    .run(conversationId, activeUser.id)
+    .prepare(
+      `UPDATE conversations
+       SET is_archived = 1, updated_at = ?
+       WHERE id = ? AND creator_id = ? AND is_archived = 0`
+    )
+    .run(Date.now(), conversationId, activeUser.id)
 }
 
 export const getConversationMessagePage = (

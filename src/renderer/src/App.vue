@@ -213,35 +213,35 @@ html[data-theme='dark'] .history-drawer .history-action.pinned {
   color: #8ed3a2;
 }
 
-html[data-theme='dark'] .history-drawer .history-action.delete:hover {
-  color: #f08b8b;
+html[data-theme='dark'] .history-drawer .history-action.archive:hover {
+  color: #8ec5f5;
 }
 
-html[data-theme='dark'] .delete-dialog {
+html[data-theme='dark'] .archive-dialog {
   color: #e4e8ee;
   background: #181818;
   box-shadow: 0 16px 40px rgb(0 0 0 / 45%);
 }
 
-html[data-theme='dark'] .delete-dialog p {
+html[data-theme='dark'] .archive-dialog p {
   color: #aeb7c3;
 }
 
-html[data-theme='dark'] .delete-dialog__actions button {
+html[data-theme='dark'] .archive-dialog__actions button {
   color: #d7dee8;
   border-color: #303030;
   background: #181818;
 }
 
-html[data-theme='dark'] .delete-dialog__actions button:hover {
+html[data-theme='dark'] .archive-dialog__actions button:hover {
   background: #303030;
 }
 
-html[data-theme='dark'] .delete-dialog__actions .delete-dialog__confirm,
-html[data-theme='dark'] .delete-dialog__actions .delete-dialog__confirm:hover {
+html[data-theme='dark'] .archive-dialog__actions .archive-dialog__confirm,
+html[data-theme='dark'] .archive-dialog__actions .archive-dialog__confirm:hover {
   color: #fff;
-  border-color: #cf4c4c;
-  background: #cf4c4c;
+  border-color: #3b6da2;
+  background: #3b6da2;
 }
 
 html[data-theme='dark'] .messages .user {

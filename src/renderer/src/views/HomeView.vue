@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import {
   ArrowUp,
+  Archive,
   LayoutGrid,
   Menu,
   Pin,
   PinOff,
   Plus,
   Settings,
-  Trash2,
   Zap
 } from 'lucide-vue-next'
 import { nextTick, onMounted, ref, watch } from 'vue'
@@ -30,7 +30,7 @@ const {
   isSending,
   messages
 } = storeToRefs(chatStore)
-const conversationPendingDeletion = ref<ConversationSummary>()
+const conversationPendingArchive = ref<ConversationSummary>()
 const chatArea = ref<HTMLElement>()
 
 const resetComposer = async (): Promise<void> => {
@@ -91,22 +91,22 @@ const togglePinnedConversation = async (conversationId: string): Promise<void> =
   await chatStore.togglePinnedConversation(conversationId)
 }
 
-const requestConversationDeletion = (conversation: ConversationSummary): void => {
+const requestConversationArchive = (conversation: ConversationSummary): void => {
   if (isSending.value) return
-  conversationPendingDeletion.value = conversation
+  conversationPendingArchive.value = conversation
 }
 
-const cancelConversationDeletion = (): void => {
-  conversationPendingDeletion.value = undefined
+const cancelConversationArchive = (): void => {
+  conversationPendingArchive.value = undefined
 }
 
-const confirmConversationDeletion = async (): Promise<void> => {
-  const conversation = conversationPendingDeletion.value
+const confirmConversationArchive = async (): Promise<void> => {
+  const conversation = conversationPendingArchive.value
   if (!conversation || isSending.value) return
 
-  await chatStore.deleteConversation(conversation.id)
+  await chatStore.archiveConversation(conversation.id)
   isFollowingLatest.value = true
-  conversationPendingDeletion.value = undefined
+  conversationPendingArchive.value = undefined
 }
 
 const sendMessage = async (): Promise<void> => {
@@ -248,13 +248,13 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
                   <Pin v-else :size="15" :stroke-width="1.8" />
                 </button>
                 <button
-                  aria-label="删除对话"
-                  class="history-action delete"
+                  aria-label="归档对话"
+                  class="history-action archive"
                   :disabled="isSending"
                   type="button"
-                  @click="requestConversationDeletion(conversation)"
+                  @click="requestConversationArchive(conversation)"
                 >
-                  <Trash2 :size="15" :stroke-width="1.8" />
+                  <Archive :size="15" :stroke-width="1.8" />
                 </button>
               </div>
             </li>
@@ -264,22 +264,22 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
     </Transition>
 
     <div
-      v-if="conversationPendingDeletion"
+      v-if="conversationPendingArchive"
       class="modal-backdrop"
-      @click.self="cancelConversationDeletion"
+      @click.self="cancelConversationArchive"
     >
       <section
         aria-modal="true"
-        class="delete-dialog"
+        class="archive-dialog"
         role="dialog"
-        aria-labelledby="delete-dialog-title"
+        aria-labelledby="archive-dialog-title"
       >
-        <h3 id="delete-dialog-title">删除对话？</h3>
-        <p>“{{ conversationPendingDeletion.title }}”及其中全部消息将被永久删除。</p>
-        <div class="delete-dialog__actions">
-          <button type="button" @click="cancelConversationDeletion">取消</button>
-          <button class="delete-dialog__confirm" type="button" @click="confirmConversationDeletion">
-            删除
+        <h3 id="archive-dialog-title">归档对话？</h3>
+        <p>“{{ conversationPendingArchive.title }}”将从历史消息中隐藏，但全部对话内容会保留。</p>
+        <div class="archive-dialog__actions">
+          <button type="button" @click="cancelConversationArchive">取消</button>
+          <button class="archive-dialog__confirm" type="button" @click="confirmConversationArchive">
+            归档
           </button>
         </div>
       </section>
@@ -469,8 +469,8 @@ ul {
   color: #28704a;
 }
 
-.history-action.delete:hover {
-  color: #c44040;
+.history-action.archive:hover {
+  color: #3b6da2;
 }
 
 .history-action:disabled {
@@ -488,7 +488,7 @@ ul {
   background: rgb(0 0 0 / 35%);
 }
 
-.delete-dialog {
+.archive-dialog {
   box-sizing: border-box;
   width: min(360px, 100%);
   padding: 20px;
@@ -498,31 +498,31 @@ ul {
   box-shadow: 0 16px 40px rgb(0 0 0 / 18%);
 }
 
-.delete-dialog h3,
-.delete-dialog p {
+.archive-dialog h3,
+.archive-dialog p {
   margin: 0;
 }
 
-.delete-dialog h3 {
+.archive-dialog h3 {
   font-size: 16px;
   font-weight: 600;
 }
 
-.delete-dialog p {
+.archive-dialog p {
   margin-top: 9px;
   color: #6f6f6f;
   font-size: 13px;
   line-height: 1.55;
 }
 
-.delete-dialog__actions {
+.archive-dialog__actions {
   display: flex;
   gap: 8px;
   margin-top: 20px;
   justify-content: flex-end;
 }
 
-.delete-dialog__actions button {
+.archive-dialog__actions button {
   height: 32px;
   padding: 0 12px;
   color: #4c4c4c;
@@ -531,18 +531,18 @@ ul {
   background: #fff;
 }
 
-.delete-dialog__actions button:hover {
+.archive-dialog__actions button:hover {
   background: #f4f4f4;
 }
 
-.delete-dialog__actions .delete-dialog__confirm {
+.archive-dialog__actions .archive-dialog__confirm {
   color: #fff;
-  border-color: #cf4c4c;
-  background: #cf4c4c;
+  border-color: #3b6da2;
+  background: #3b6da2;
 }
 
-.delete-dialog__actions .delete-dialog__confirm:hover {
-  background: #b93e3e;
+.archive-dialog__actions .archive-dialog__confirm:hover {
+  background: #2e5985;
 }
 
 .drawer-enter-active,

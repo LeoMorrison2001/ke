@@ -63,7 +63,7 @@ interface ChatApi {
   send: (conversationId: string) => Promise<void>
   listConversations: () => Promise<ConversationSummary[]>
   toggleConversationPinned: (conversationId: string) => Promise<void>
-  deleteConversation: (conversationId: string) => Promise<void>
+  archiveConversation: (conversationId: string) => Promise<void>
   getMessagePage: (conversationId: string, beforeCursor?: number) => Promise<ChatMessagePage>
   onDelta: (callback: (text: string) => void) => () => void
   onActivity: (callback: (activity: AiActivity) => void) => () => void
