@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, BookOpenText, Brain } from 'lucide-vue-next'
+import { ArrowLeft, BookOpenText } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -15,21 +15,8 @@ const router = useRouter()
       </button>
     </header>
     <main class="apps-content">
-      <section class="apps-group" aria-labelledby="system-applications-title">
-        <h2 id="system-applications-title">系统应用</h2>
-        <div class="apps-group__content">
-          <button
-            class="application-card"
-            type="button"
-            @click="router.push({ name: 'xiaoke-memory' })"
-          >
-            <Brain class="memory-icon" :size="26" :stroke-width="1.7" />
-            <span>小可记忆</span>
-          </button>
-        </div>
-      </section>
-      <section class="apps-group" aria-labelledby="life-applications-title">
-        <h2 id="life-applications-title">生活应用</h2>
+      <section class="apps-group" aria-labelledby="installed-applications-title">
+        <h2 id="installed-applications-title">已安装应用</h2>
         <div class="apps-group__content">
           <button
             class="application-card"
@@ -145,10 +132,6 @@ h2 {
 .application-card:hover {
   border-color: var(--color-border);
   background: var(--color-surface-hover);
-}
-
-.memory-icon {
-  color: #5c8e70;
 }
 
 .diary-icon {

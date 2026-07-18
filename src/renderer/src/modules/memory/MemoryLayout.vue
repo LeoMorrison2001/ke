@@ -37,9 +37,9 @@ const openSection = (routeName: MemoryMenuItem['routeName']): void => {
   <section class="page-view memory-view">
     <header class="console">
       <h1>小可记忆</h1>
-      <button class="back-button" type="button" @click="router.push({ name: 'applications' })">
+      <button class="back-button" type="button" @click="router.push({ name: 'home' })">
         <ArrowLeft :size="18" :stroke-width="1.8" />
-        返回应用
+        返回聊天
       </button>
     </header>
     <main class="memory-layout">

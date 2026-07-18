@@ -6,7 +6,7 @@ import UserInformationPage from './pages/UserInformationPage.vue'
 
 export const memoryRoutes: RouteRecordRaw[] = [
   {
-    path: '/applications/xiaoke-memory',
+    path: '/memory',
     name: 'xiaoke-memory',
     component: MemoryLayout,
     redirect: { name: 'xiaoke-memory-profile' },

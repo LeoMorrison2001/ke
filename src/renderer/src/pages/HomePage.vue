@@ -3,6 +3,7 @@ import {
   ArrowUp,
   ArrowUpRight,
   Archive,
+  Brain,
   BookOpenText,
   LayoutGrid,
   Menu,
@@ -181,6 +182,14 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
         <button class="new-chat-button" type="button" @click="startNewConversation">
           <Plus :size="17" :stroke-width="2" />
           新对话
+        </button>
+        <button
+          aria-label="小可记忆"
+          class="header-icon-button"
+          type="button"
+          @click="router.push({ name: 'xiaoke-memory' })"
+        >
+          <Brain :size="18" :stroke-width="1.8" />
         </button>
         <button
           aria-label="应用"
