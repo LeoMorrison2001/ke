@@ -1,4 +1,5 @@
 import { jsonSchema, tool, type ToolSet } from 'ai'
+import { randomUUID } from 'node:crypto'
 import type { AgentDefinition } from '../contracts/agent-contracts'
 import { diaryPlugin } from '../../plugins/builtin/diary/diary-plugin'
 import type { PluginAgentToolContext } from '../../plugins/plugin-agent-contracts'
@@ -25,7 +26,7 @@ const getThirdPartyAgents = (): AgentDefinition[] =>
       return [{
         id: `plugin:${plugin.manifest.id}`,
         supportedOperations: capabilities.map((capability) => capability.id),
-        execute: async (task) => invokePluginAgent(task.taskRunId, plugin.manifest.id, task.operation, task.context)
+        execute: async (task) => invokePluginAgent(`${task.taskRunId}:${randomUUID()}`, plugin.manifest.id, task.operation, task.context)
       }]
     })
 
