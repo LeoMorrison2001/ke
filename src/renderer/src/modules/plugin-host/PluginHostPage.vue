@@ -9,8 +9,16 @@ const pluginName = ref('应用')
 const pluginUrl = ref<string>()
 const loadError = ref('')
 const pluginFrame = ref<HTMLIFrameElement>()
+let themeObserver: MutationObserver | undefined
 
 const pluginId = computed(() => (typeof route.params.pluginId === 'string' ? route.params.pluginId : ''))
+
+const sendTheme = (): void => {
+  pluginFrame.value?.contentWindow?.postMessage(
+    { type: 'ke-plugin:theme', theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light' },
+    '*'
+  )
+}
 
 const buildPluginUrl = (plugin: InstalledPlugin): string => {
   const entryPath = plugin.manifest.uiEntry
@@ -46,6 +54,8 @@ const handlePluginMessage = (event: MessageEvent<unknown>): void => {
 
 onMounted(async () => {
   window.addEventListener('message', handlePluginMessage)
+  themeObserver = new MutationObserver(sendTheme)
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
   try {
     const plugin = (await window.api.plugins.listInstalled()).find(
       (item) =>
@@ -62,7 +72,10 @@ onMounted(async () => {
   }
 })
 
-onBeforeUnmount(() => window.removeEventListener('message', handlePluginMessage))
+onBeforeUnmount(() => {
+  window.removeEventListener('message', handlePluginMessage)
+  themeObserver?.disconnect()
+})
 </script>
 
 <template>
@@ -83,6 +96,7 @@ onBeforeUnmount(() => window.removeEventListener('message', handlePluginMessage)
         class="plugin-frame"
         sandbox="allow-scripts allow-forms"
         referrerpolicy="no-referrer"
+        @load="sendTheme"
       ></iframe>
       <p v-else class="plugin-state">{{ loadError || '正在加载应用…' }}</p>
     </main>
@@ -147,7 +161,7 @@ h1 {
   width: 100%;
   height: 100%;
   border: 0;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .plugin-state {

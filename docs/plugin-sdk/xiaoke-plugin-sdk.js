@@ -1,7 +1,15 @@
 export class XiaokePlugin {
   constructor() {
     this.pending = new Map()
+    this.theme = 'light'
+    this.themeListeners = new Set()
     window.addEventListener('message', (event) => this.handleMessage(event))
+  }
+
+  onThemeChange(listener) {
+    this.themeListeners.add(listener)
+    listener(this.theme)
+    return () => this.themeListeners.delete(listener)
   }
 
   request(request) {
@@ -28,6 +36,11 @@ export class XiaokePlugin {
       if (!pending) return
       this.pending.delete(message.requestId)
       message.ok ? pending.resolve(message.value) : pending.reject(new Error(message.error || '平台请求失败。'))
+      return
+    }
+    if (message.type === 'ke-plugin:theme' && (message.theme === 'light' || message.theme === 'dark')) {
+      this.theme = message.theme
+      this.themeListeners.forEach((listener) => listener(this.theme))
       return
     }
     if (message.type === 'ke-plugin:agent-invoke') this.handleAgentInvocation(message)
