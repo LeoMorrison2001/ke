@@ -172,6 +172,7 @@ interface ListDiaryTimelineInput {
   cursorDate?: string
   direction: 'older' | 'newer'
   limit: number
+  favoriteOnly?: boolean
 }
 
 interface DiaryApi {
@@ -179,6 +180,7 @@ interface DiaryApi {
   getEntry: (entryDate: string) => Promise<DiaryEntry | undefined>
   listCalendarEntries: (month: string) => Promise<DiaryCalendarEntry[]>
   listTimelineEntries: (input: ListDiaryTimelineInput) => Promise<DiaryTimelineEntry[]>
+  toggleEntryFavorite: (entryDate: string) => Promise<DiaryEntry>
   saveEntry: (input: SaveDiaryEntryInput) => Promise<DiaryEntry>
 }
 

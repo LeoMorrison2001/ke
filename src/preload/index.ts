@@ -112,6 +112,7 @@ interface ListDiaryTimelineInput {
   cursorDate?: string
   direction: 'older' | 'newer'
   limit: number
+  favoriteOnly?: boolean
 }
 
 interface ActiveUser {
@@ -160,6 +161,8 @@ const api = {
       ipcRenderer.invoke('diary:list-calendar-entries', month),
     listTimelineEntries: (input: ListDiaryTimelineInput): Promise<DiaryTimelineEntry[]> =>
       ipcRenderer.invoke('diary:list-timeline-entries', input),
+    toggleEntryFavorite: (entryDate: string): Promise<DiaryEntry> =>
+      ipcRenderer.invoke('diary:toggle-entry-favorite', entryDate),
     saveEntry: (input: SaveDiaryEntryInput): Promise<DiaryEntry> =>
       ipcRenderer.invoke('diary:save-entry', input)
   },

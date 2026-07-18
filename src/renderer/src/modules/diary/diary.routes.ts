@@ -1,6 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router'
 import DiaryLayout from './DiaryLayout.vue'
-import DiarySectionPage from './pages/DiarySectionPage.vue'
 import DiaryTodayPage from './pages/DiaryTodayPage.vue'
 import DiaryCalendarPage from './pages/DiaryCalendarPage.vue'
 import DiaryTimelinePage from './pages/DiaryTimelinePage.vue'
@@ -36,8 +35,8 @@ export const diaryRoutes: RouteRecordRaw[] = [
       {
         path: 'favorites',
         name: 'xiaoke-diary-favorites',
-        component: DiarySectionPage,
-        props: { title: '收藏' }
+        component: DiaryTimelinePage,
+        props: { favoriteOnly: true }
       }
     ]
   }

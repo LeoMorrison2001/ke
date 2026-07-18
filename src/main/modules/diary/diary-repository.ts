@@ -51,6 +51,7 @@ export interface ListDiaryTimelineInput {
   cursorDate?: string
   direction: 'older' | 'newer'
   limit: number
+  favoriteOnly?: boolean
 }
 
 interface DiaryEntryRow {
@@ -191,6 +192,24 @@ export const getDiaryEntry = (entryDate: string): DiaryEntry | undefined => {
   return row ? toDiaryEntry(row) : undefined
 }
 
+export const toggleDiaryEntryFavorite = (entryDate: string): DiaryEntry => {
+  const user = requireActiveUser()
+  const normalizedDate = validateEntryDate(entryDate)
+  const database = getDatabase()
+  const result = database
+    .prepare(
+      `UPDATE diary_entries
+       SET is_favorite = CASE is_favorite WHEN 1 THEN 0 ELSE 1 END, updated_at = ?
+       WHERE user_id = ? AND entry_date = ?`
+    )
+    .run(Date.now(), user.id, normalizedDate)
+  if (result.changes !== 1) throw new Error('日记不存在，无法更新收藏状态。')
+
+  const row = getEntryRow(user.id, normalizedDate)
+  if (!row) throw new Error('更新收藏状态失败。')
+  return toDiaryEntry(row)
+}
+
 export const listDiaryCalendarEntries = (month: string): DiaryCalendarEntry[] => {
   const user = requireActiveUser()
   const normalizedMonth = validateMonth(month)
@@ -219,8 +238,12 @@ export const listDiaryTimelineEntries = (
   const user = requireActiveUser()
   const limit = validateTimelineLimit(input.limit)
   if (input.direction !== 'older' && input.direction !== 'newer') throw new Error('时间线加载方向无效。')
+  if (input.favoriteOnly !== undefined && typeof input.favoriteOnly !== 'boolean') {
+    throw new Error('收藏筛选条件无效。')
+  }
   const cursorDate = input.cursorDate ? validateEntryDate(input.cursorDate) : undefined
   const database = getDatabase()
+  const favoriteCondition = input.favoriteOnly ? 'AND is_favorite = 1' : ''
 
   const rows =
     input.direction === 'newer' && cursorDate
@@ -229,7 +252,7 @@ export const listDiaryTimelineEntries = (
             `SELECT entry_date, substr(content, 1, 240) AS content_preview,
                     location_text, weather_code, mood_code
              FROM diary_entries
-             WHERE user_id = ? AND updated_at > created_at AND entry_date > ?
+             WHERE user_id = ? AND updated_at > created_at AND entry_date > ? ${favoriteCondition}
              ORDER BY entry_date ASC
              LIMIT ?`
           )
@@ -240,6 +263,7 @@ export const listDiaryTimelineEntries = (
                     location_text, weather_code, mood_code
              FROM diary_entries
              WHERE user_id = ? AND updated_at > created_at
+               ${favoriteCondition}
                ${cursorDate ? 'AND entry_date < ?' : ''}
              ORDER BY entry_date DESC
              LIMIT ?`

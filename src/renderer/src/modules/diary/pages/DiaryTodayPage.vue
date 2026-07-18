@@ -68,6 +68,8 @@ const weatherPicker = ref<HTMLElement>()
 const saveStatus = ref<'loading' | 'unsaved' | 'saving' | 'saved' | 'error'>('loading')
 const saveError = ref('')
 const hasExistingEntry = ref(false)
+const isFavorite = ref(false)
+const isFavoriteUpdating = ref(false)
 let isDiaryReady = false
 let isSaving = false
 let savedSnapshot: DiarySnapshot | undefined
@@ -167,6 +169,20 @@ const flushSave = (): void => {
   if (!isSameSnapshot(savedSnapshot, getSnapshot())) void saveDiary()
 }
 
+const toggleFavorite = async (): Promise<void> => {
+  if (!props.readOnly || !hasExistingEntry.value || isFavoriteUpdating.value) return
+
+  isFavoriteUpdating.value = true
+  try {
+    const entry = await window.api.diary.toggleEntryFavorite(diaryEntryDate.value)
+    isFavorite.value = entry.isFavorite
+  } catch (error) {
+    saveError.value = error instanceof Error ? error.message : '更新收藏状态失败，请稍后重试。'
+  } finally {
+    isFavoriteUpdating.value = false
+  }
+}
+
 const selectMood = (mood: MoodOption): void => {
   selectedMood.value = mood
   isMoodPickerOpen.value = false
@@ -205,6 +221,7 @@ onMounted(() => {
         : await window.api.diary.ensureEntry(diaryEntryDate.value)
       if (entry) {
         hasExistingEntry.value = true
+        isFavorite.value = entry.isFavorite
         diaryContent.value = entry.content
         locationText.value = entry.locationText
         selectedWeather.value = weatherOptions.find((item) => item.code === entry.weatherCode) ?? weatherOptions[0]
@@ -297,8 +314,15 @@ onBeforeUnmount(() => {
         </div>
       </div>
       <div class="diary-today__status">
-        <button class="bookmark-button" type="button" aria-label="收藏日记">
-          <Bookmark :size="18" :stroke-width="1.6" />
+        <button
+          v-if="props.readOnly && hasExistingEntry"
+          class="bookmark-button"
+          type="button"
+          :aria-label="isFavorite ? '取消收藏日记' : '收藏日记'"
+          :disabled="isFavoriteUpdating"
+          @click="toggleFavorite"
+        >
+          <Bookmark :size="18" :stroke-width="1.6" :fill="isFavorite ? 'currentColor' : 'none'" />
         </button>
         <span v-if="!props.readOnly" :class="{ 'save-status--error': saveStatus === 'error' }">
           <Cloud :size="14" />{{ saveStatusText }}

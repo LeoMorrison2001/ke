@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ArrowUpRight } from 'lucide-vue-next'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+
+const props = withDefaults(defineProps<{ favoriteOnly?: boolean }>(), { favoriteOnly: false })
 
 type DiaryMoodCode = 'happy' | 'calm' | 'content' | 'low' | 'irritable' | 'tired'
 type DiaryWeatherCode =
@@ -66,6 +68,7 @@ const hasOlder = ref(true)
 const hasNewer = ref(false)
 const loadError = ref('')
 let isUnmounted = false
+let dataVersion = 0
 
 const timelineGroups = computed<TimelineGroup[]>(() => {
   const groups = new Map<string, TimelineEntry[]>()
@@ -78,6 +81,11 @@ const timelineGroups = computed<TimelineGroup[]>(() => {
   return Array.from(groups, ([monthLabel, groupedEntries]) => ({ monthLabel, entries: groupedEntries }))
 })
 
+const pageTitle = computed(() => (props.favoriteOnly ? '收藏' : '时间线'))
+const pageSubtitle = computed(() =>
+  props.favoriteOnly ? '收集那些想要珍藏的日子' : '回看那些被认真记录的日子'
+)
+
 const getEntryOffset = (entryDate: string): number | undefined => {
   const container = scrollContainer.value
   const element = container?.querySelector<HTMLElement>(`[data-entry-date="${entryDate}"]`)
@@ -85,21 +93,25 @@ const getEntryOffset = (entryDate: string): number | undefined => {
 }
 
 const loadInitialEntries = async (): Promise<void> => {
+  const requestVersion = ++dataVersion
   isInitialLoading.value = true
   loadError.value = ''
   try {
     const page = (await window.api.diary.listTimelineEntries({
       direction: 'older',
-      limit: PAGE_SIZE
+      limit: PAGE_SIZE,
+      favoriteOnly: props.favoriteOnly
     })) as TimelineEntry[]
-    if (isUnmounted) return
+    if (isUnmounted || requestVersion !== dataVersion) return
     entries.value = page
     hasOlder.value = page.length === PAGE_SIZE
     hasNewer.value = false
   } catch (error) {
-    if (!isUnmounted) loadError.value = error instanceof Error ? error.message : '时间线加载失败，请稍后重试。'
+    if (!isUnmounted && requestVersion === dataVersion) {
+      loadError.value = error instanceof Error ? error.message : '时间线加载失败，请稍后重试。'
+    }
   } finally {
-    if (!isUnmounted) isInitialLoading.value = false
+    if (!isUnmounted && requestVersion === dataVersion) isInitialLoading.value = false
   }
 }
 
@@ -108,14 +120,16 @@ const loadOlderEntries = async (): Promise<void> => {
   if (!oldest || isLoading.value || !hasOlder.value) return
 
   isLoading.value = true
+  const requestVersion = dataVersion
   loadError.value = ''
   try {
     const page = (await window.api.diary.listTimelineEntries({
       cursorDate: oldest.entryDate,
       direction: 'older',
-      limit: PAGE_SIZE
+      limit: PAGE_SIZE,
+      favoriteOnly: props.favoriteOnly
     })) as TimelineEntry[]
-    if (isUnmounted) return
+    if (isUnmounted || requestVersion !== dataVersion) return
 
     const overflow = Math.max(0, entries.value.length + page.length - MAX_RENDERED_ENTRIES)
     const anchorDate = overflow > 0 ? entries.value[overflow]?.entryDate : undefined
@@ -132,9 +146,11 @@ const loadOlderEntries = async (): Promise<void> => {
       }
     }
   } catch (error) {
-    if (!isUnmounted) loadError.value = error instanceof Error ? error.message : '加载更早日记失败，请稍后重试。'
+    if (!isUnmounted && requestVersion === dataVersion) {
+      loadError.value = error instanceof Error ? error.message : '加载更早日记失败，请稍后重试。'
+    }
   } finally {
-    if (!isUnmounted) isLoading.value = false
+    if (!isUnmounted && requestVersion === dataVersion) isLoading.value = false
   }
 }
 
@@ -143,14 +159,16 @@ const loadNewerEntries = async (): Promise<void> => {
   if (!newest || isLoading.value || !hasNewer.value) return
 
   isLoading.value = true
+  const requestVersion = dataVersion
   loadError.value = ''
   try {
     const page = (await window.api.diary.listTimelineEntries({
       cursorDate: newest.entryDate,
       direction: 'newer',
-      limit: PAGE_SIZE
+      limit: PAGE_SIZE,
+      favoriteOnly: props.favoriteOnly
     })) as TimelineEntry[]
-    if (isUnmounted) return
+    if (isUnmounted || requestVersion !== dataVersion) return
 
     const anchorOffsetBefore = getEntryOffset(newest.entryDate)
     const combinedEntries = [...page, ...entries.value]
@@ -167,9 +185,11 @@ const loadNewerEntries = async (): Promise<void> => {
       }
     }
   } catch (error) {
-    if (!isUnmounted) loadError.value = error instanceof Error ? error.message : '加载更新日记失败，请稍后重试。'
+    if (!isUnmounted && requestVersion === dataVersion) {
+      loadError.value = error instanceof Error ? error.message : '加载更新日记失败，请稍后重试。'
+    }
   } finally {
-    if (!isUnmounted) isLoading.value = false
+    if (!isUnmounted && requestVersion === dataVersion) isLoading.value = false
   }
 }
 
@@ -198,28 +218,43 @@ const openDiary = (entryDate: string): void => {
   void router.push({
     name: 'xiaoke-diary-entry',
     params: { entryDate },
-    query: { from: 'timeline' }
+    query: { from: props.favoriteOnly ? 'favorites' : 'timeline' }
   })
 }
 
 onMounted(() => void loadInitialEntries())
+watch(
+  () => props.favoriteOnly,
+  () => {
+    entries.value = []
+    hasOlder.value = true
+    hasNewer.value = false
+    isLoading.value = false
+    loadError.value = ''
+    scrollContainer.value?.scrollTo({ top: 0 })
+    void loadInitialEntries()
+  }
+)
 onBeforeUnmount(() => {
   isUnmounted = true
+  dataVersion += 1
 })
 </script>
 
 <template>
   <section ref="scrollContainer" class="diary-timeline" @scroll="handleScroll">
     <header class="diary-timeline__header">
-      <h2>时间线</h2>
-      <p>回看那些被认真记录的日子</p>
+      <h2>{{ pageTitle }}</h2>
+      <p>{{ pageSubtitle }}</p>
     </header>
 
     <p v-if="isInitialLoading" class="timeline-state">正在加载日记…</p>
     <p v-else-if="loadError && entries.length === 0" class="timeline-state timeline-state--error">
       {{ loadError }}
     </p>
-    <p v-else-if="entries.length === 0" class="timeline-state">还没有写过日记</p>
+    <p v-else-if="entries.length === 0" class="timeline-state">
+      {{ props.favoriteOnly ? '还没有收藏日记' : '还没有写过日记' }}
+    </p>
 
     <div v-else class="timeline-list">
       <p v-if="isLoading && hasNewer" class="timeline-loading">正在加载更新日记…</p>
