@@ -123,11 +123,49 @@ interface MemoryApi {
   listConversationSummaries: () => Promise<ConversationMemorySummary[]>
 }
 
+type DiaryWeatherCode =
+  | 'sunny'
+  | 'partly_cloudy'
+  | 'cloudy'
+  | 'fog'
+  | 'light_rain'
+  | 'rain'
+  | 'thunderstorm'
+  | 'snow'
+
+type DiaryMoodCode = 'happy' | 'calm' | 'content' | 'low' | 'irritable' | 'tired'
+
+interface DiaryEntry {
+  id: string
+  entryDate: string
+  content: string
+  locationText: string
+  weatherCode: DiaryWeatherCode
+  moodCode: DiaryMoodCode
+  isFavorite: boolean
+  createdAt: number
+  updatedAt: number
+}
+
+interface SaveDiaryEntryInput {
+  entryDate: string
+  content: string
+  locationText: string
+  weatherCode: DiaryWeatherCode
+  moodCode: DiaryMoodCode
+}
+
+interface DiaryApi {
+  ensureEntry: (entryDate: string) => Promise<DiaryEntry>
+  saveEntry: (input: SaveDiaryEntryInput) => Promise<DiaryEntry>
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
     api: {
       windowControls: WindowControls
+      diary: DiaryApi
       chat: ChatApi
       user: UserApi
       memory: MemoryApi

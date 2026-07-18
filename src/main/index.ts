@@ -27,6 +27,7 @@ import {
   toggleConversationPinned
 } from './conversation-repository'
 import { streamDialogue } from './ai/dialogue-service'
+import { ensureDiaryEntry, saveDiaryEntry, type SaveDiaryEntryInput } from './diary-repository'
 import {
   createInitialUser,
   createUser,
@@ -136,6 +137,10 @@ app.whenReady().then(() => {
   ipcMain.handle('window:is-maximized', (event) => {
     return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false
   })
+
+  ipcMain.handle('diary:ensure-entry', (_event, entryDate: string) => ensureDiaryEntry(entryDate))
+
+  ipcMain.handle('diary:save-entry', (_event, input: SaveDiaryEntryInput) => saveDiaryEntry(input))
 
   ipcMain.handle('user:get-active', () => getActiveUser())
 

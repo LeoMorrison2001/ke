@@ -9,6 +9,7 @@ import MemorySectionView from '../views/MemorySectionView.vue'
 import UserInformationPanel from '../views/UserInformationPanel.vue'
 import ConversationMemoryPanel from '../views/ConversationMemoryPanel.vue'
 import DiarySectionView from '../views/DiarySectionView.vue'
+import DiaryTodayView from '../views/DiaryTodayView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -73,8 +74,7 @@ const router = createRouter({
         {
           path: 'today',
           name: 'xiaoke-diary-today',
-          component: DiarySectionView,
-          props: { title: '今天' }
+          component: DiaryTodayView
         },
         {
           path: 'calendar',

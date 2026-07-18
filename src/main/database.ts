@@ -13,7 +13,7 @@ import { app } from 'electron'
 
 const DATABASE_DIRECTORY_NAME = 'data'
 const DATABASE_FILE_NAME = 'ke.sqlite'
-const DATABASE_SCHEMA_VERSION = 7
+const DATABASE_SCHEMA_VERSION = 8
 const STORAGE_SETTINGS_FILE_NAME = 'storage-settings.json'
 
 let database: DatabaseSync | undefined
@@ -86,6 +86,29 @@ const applySchema = (connection: DatabaseSync): void => {
         FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL
       );
 
+      CREATE TABLE IF NOT EXISTS diary_entries (
+        id TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        entry_date TEXT NOT NULL,
+        content TEXT NOT NULL DEFAULT '',
+        location_text TEXT NOT NULL DEFAULT '',
+        weather_code TEXT NOT NULL DEFAULT 'sunny'
+          CHECK (weather_code IN (
+            'sunny', 'partly_cloudy', 'cloudy', 'fog',
+            'light_rain', 'rain', 'thunderstorm', 'snow'
+          )),
+        mood_code TEXT NOT NULL DEFAULT 'happy'
+          CHECK (mood_code IN (
+            'happy', 'calm', 'content', 'low', 'irritable', 'tired'
+          )),
+        is_favorite INTEGER NOT NULL DEFAULT 0 CHECK (is_favorite IN (0, 1)),
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE (user_id, entry_date),
+        CHECK (entry_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]')
+      );
+
       CREATE INDEX IF NOT EXISTS idx_conversations_updated_at
         ON conversations(updated_at DESC);
 
@@ -138,6 +161,12 @@ const applySchema = (connection: DatabaseSync): void => {
 
       CREATE INDEX IF NOT EXISTS idx_user_profile_change_logs_user_created
         ON user_profile_change_logs(user_id, created_at DESC);
+
+      CREATE INDEX IF NOT EXISTS idx_diary_entries_user_date
+        ON diary_entries(user_id, entry_date DESC);
+
+      CREATE INDEX IF NOT EXISTS idx_diary_entries_user_favorite_date
+        ON diary_entries(user_id, is_favorite, entry_date DESC);
 
       CREATE UNIQUE INDEX IF NOT EXISTS idx_users_only_one_active
         ON users(is_active) WHERE is_active = 1;

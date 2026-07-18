@@ -63,6 +63,38 @@ interface DatabaseLocation {
 
 type UserGender = 'male' | 'female'
 
+type DiaryWeatherCode =
+  | 'sunny'
+  | 'partly_cloudy'
+  | 'cloudy'
+  | 'fog'
+  | 'light_rain'
+  | 'rain'
+  | 'thunderstorm'
+  | 'snow'
+
+type DiaryMoodCode = 'happy' | 'calm' | 'content' | 'low' | 'irritable' | 'tired'
+
+interface DiaryEntry {
+  id: string
+  entryDate: string
+  content: string
+  locationText: string
+  weatherCode: DiaryWeatherCode
+  moodCode: DiaryMoodCode
+  isFavorite: boolean
+  createdAt: number
+  updatedAt: number
+}
+
+interface SaveDiaryEntryInput {
+  entryDate: string
+  content: string
+  locationText: string
+  weatherCode: DiaryWeatherCode
+  moodCode: DiaryMoodCode
+}
+
 interface ActiveUser {
   id: number
   name: string
@@ -99,6 +131,12 @@ const api = {
         ipcRenderer.removeListener('window:maximize-state-changed', listener)
       }
     }
+  },
+  diary: {
+    ensureEntry: (entryDate: string): Promise<DiaryEntry> =>
+      ipcRenderer.invoke('diary:ensure-entry', entryDate),
+    saveEntry: (input: SaveDiaryEntryInput): Promise<DiaryEntry> =>
+      ipcRenderer.invoke('diary:save-entry', input)
   },
   chat: {
     saveUserMessage: (conversationId: string, content: string): Promise<ChatMessage> =>
