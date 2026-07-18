@@ -9,17 +9,24 @@ import { getChatModel } from './model-client'
 import { generationActivity, type AiActivity } from './activity'
 import { buildSystemPrompt } from './system-prompt'
 import { createUserProfileTools, userProfileToolActivities } from './tools/user-profile-tools'
+import { createMasterTools } from './orchestrator/master-tools'
+import type { UiAction } from './contracts/agent-contracts'
 
 export interface StreamDialogueOptions {
   onDelta: (text: string) => void
   onActivity: (activity: AiActivity) => void
 }
 
+export interface StreamDialogueResult {
+  assistantMessage: ConversationMessage
+  uiActions: UiAction[]
+}
+
 export const streamDialogue = async (
   conversationId: string,
   user: ActiveUser,
   { onActivity, onDelta }: StreamDialogueOptions
-): Promise<ConversationMessage> => {
+): Promise<StreamDialogueResult> => {
   if (!process.env.NEW_API_KEY) {
     throw new Error('未配置 AI API Key，请在 .env 中设置 NEW_API_KEY。')
   }
@@ -29,12 +36,19 @@ export const streamDialogue = async (
     role: message.role,
     content: message.content
   }))
+  const uiActions: UiAction[] = []
+  const masterTools = createMasterTools({
+    conversationId,
+    userId: user.id,
+    userMessage: conversationMessages.at(-1)?.content ?? '',
+    onUiActions: (actions) => uiActions.push(...actions)
+  })
   const result = streamText({
     model: getChatModel(),
     system: buildSystemPrompt(user),
     messages: modelMessages,
-    tools: createUserProfileTools(conversationId, user.id),
-    stopWhen: stepCountIs(3)
+    tools: { ...createUserProfileTools(conversationId, user.id), ...masterTools.tools },
+    stopWhen: stepCountIs(6)
   })
   let response = ''
   onActivity(generationActivity)
@@ -70,5 +84,9 @@ export const streamDialogue = async (
     }
   }
 
-  return saveAssistantMessage(conversationId, response, user.id)
+  masterTools.complete()
+  return {
+    assistantMessage: saveAssistantMessage(conversationId, response, user.id, uiActions),
+    uiActions
+  }
 }

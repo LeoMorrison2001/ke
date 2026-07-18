@@ -13,7 +13,7 @@ import { app } from 'electron'
 
 const DATABASE_DIRECTORY_NAME = 'data'
 const DATABASE_FILE_NAME = 'ke.sqlite'
-const DATABASE_SCHEMA_VERSION = 8
+const DATABASE_SCHEMA_VERSION = 10
 const STORAGE_SETTINGS_FILE_NAME = 'storage-settings.json'
 
 let database: DatabaseSync | undefined
@@ -109,6 +109,45 @@ const applySchema = (connection: DatabaseSync): void => {
         CHECK (entry_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]')
       );
 
+      CREATE TABLE IF NOT EXISTS agent_task_runs (
+        id TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL,
+        user_id INTEGER NOT NULL,
+        goal TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN (
+          'running', 'waiting_user', 'waiting_confirmation', 'completed', 'failed', 'cancelled'
+        )),
+        active_agent_id TEXT,
+        context_json TEXT NOT NULL DEFAULT '{}',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS agent_task_steps (
+        id TEXT PRIMARY KEY,
+        task_run_id TEXT NOT NULL,
+        agent_id TEXT NOT NULL,
+        operation TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('running', 'completed', 'needs_input', 'needs_confirmation', 'failed')),
+        input_json TEXT NOT NULL,
+        output_json TEXT NOT NULL DEFAULT '{}',
+        created_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        FOREIGN KEY (task_run_id) REFERENCES agent_task_runs(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS conversation_message_actions (
+        id TEXT PRIMARY KEY,
+        message_id TEXT NOT NULL,
+        position INTEGER NOT NULL,
+        payload_json TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (message_id) REFERENCES conversation_memories(id) ON DELETE CASCADE,
+        UNIQUE (message_id, position)
+      );
+
       CREATE INDEX IF NOT EXISTS idx_conversations_updated_at
         ON conversations(updated_at DESC);
 
@@ -167,6 +206,15 @@ const applySchema = (connection: DatabaseSync): void => {
 
       CREATE INDEX IF NOT EXISTS idx_diary_entries_user_favorite_date
         ON diary_entries(user_id, is_favorite, entry_date DESC);
+
+      CREATE INDEX IF NOT EXISTS idx_agent_task_runs_conversation_updated
+        ON agent_task_runs(conversation_id, updated_at DESC);
+
+      CREATE INDEX IF NOT EXISTS idx_agent_task_steps_run_created
+        ON agent_task_steps(task_run_id, created_at ASC);
+
+      CREATE INDEX IF NOT EXISTS idx_conversation_message_actions_message_position
+        ON conversation_message_actions(message_id, position ASC);
 
       CREATE UNIQUE INDEX IF NOT EXISTS idx_users_only_one_active
         ON users(is_active) WHERE is_active = 1;

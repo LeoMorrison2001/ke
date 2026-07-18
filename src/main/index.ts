@@ -55,11 +55,11 @@ const streamChat = async (sender: Electron.WebContents, conversationId: string):
     const user = getUserById(userId)
     if (!user) throw new Error('该对话所属的用户不存在。')
 
-    const assistantMessage = await streamDialogue(conversationId, user, {
+    const result = await streamDialogue(conversationId, user, {
       onDelta: (text) => sender.send('chat:delta', { conversationId, text }),
       onActivity: (activity) => sender.send('chat:activity', { conversationId, activity })
     })
-    sender.send('chat:complete', { conversationId, assistantMessage })
+    sender.send('chat:complete', { conversationId, ...result })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'AI 响应失败，请稍后重试。'
     sender.send('chat:error', { conversationId, errorMessage })

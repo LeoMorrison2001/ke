@@ -16,6 +16,16 @@ export interface DisplayMessage {
   cursor?: number
   createdAt?: number
   createdTime?: string
+  uiActions?: ChatUiAction[]
+}
+
+export interface ChatUiAction {
+  type: 'navigate'
+  label: string
+  description?: string
+  routeName: 'xiaoke-diary-today' | 'xiaoke-diary-entry'
+  params?: Record<string, string>
+  query?: Record<string, string>
 }
 
 export interface AiActivity {
@@ -68,7 +78,8 @@ export const useChatStore = defineStore('chat', () => {
       content: message.content,
       cursor: message.cursor,
       createdAt: message.createdAt,
-      createdTime: message.createdTime
+      createdTime: message.createdTime,
+      uiActions: message.uiActions
     }))
     oldestMessageCursor.value = page.messages.at(0)?.cursor
     hasMoreMessages.value = page.hasMore
@@ -97,7 +108,8 @@ export const useChatStore = defineStore('chat', () => {
         content: message.content,
         cursor: message.cursor,
         createdAt: message.createdAt,
-        createdTime: message.createdTime
+        createdTime: message.createdTime,
+        uiActions: message.uiActions
       }))
       messages.value = [...olderMessages, ...messages.value]
       oldestMessageCursor.value = messages.value.at(0)?.cursor
@@ -165,7 +177,7 @@ export const useChatStore = defineStore('chat', () => {
       if (conversationId !== currentConversationId.value) return
       activity.value = nextActivity
     })
-    window.api.chat.onComplete(({ conversationId, assistantMessage }) => {
+    window.api.chat.onComplete(({ conversationId, assistantMessage, uiActions }) => {
       if (conversationId !== currentConversationId.value) return
       const assistantDisplayMessage = messages.value.at(-1)
       if (assistantDisplayMessage?.role === 'assistant') {
@@ -173,6 +185,7 @@ export const useChatStore = defineStore('chat', () => {
         assistantDisplayMessage.cursor = assistantMessage.cursor
         assistantDisplayMessage.createdAt = assistantMessage.createdAt
         assistantDisplayMessage.createdTime = assistantMessage.createdTime
+        assistantDisplayMessage.uiActions = uiActions
       }
       isSending.value = false
       activity.value = undefined

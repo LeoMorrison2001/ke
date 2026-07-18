@@ -25,6 +25,16 @@ export interface ConversationMessage {
   createdTime: string
   createdAt: number
   cursor: number
+  uiActions?: ConversationUiAction[]
+}
+
+export interface ConversationUiAction {
+  type: 'navigate'
+  label: string
+  description?: string
+  routeName: 'xiaoke-diary-today' | 'xiaoke-diary-entry'
+  params?: Record<string, string>
+  query?: Record<string, string>
 }
 
 export interface ConversationMessagePage {
@@ -67,6 +77,33 @@ const toConversationMessage = (row: ConversationMessageRow): ConversationMessage
   createdAt: Number(row.created_at),
   cursor: Number(row.cursor)
 })
+
+const loadMessageActions = (messageIds: string[]): Map<string, ConversationUiAction[]> => {
+  const actions = new Map<string, ConversationUiAction[]>()
+  if (messageIds.length === 0) return actions
+  const placeholders = messageIds.map(() => '?').join(', ')
+  const rows = getDatabase()
+    .prepare(
+      `SELECT message_id, payload_json
+       FROM conversation_message_actions
+       WHERE message_id IN (${placeholders})
+       ORDER BY message_id, position ASC`
+    )
+    .all(...messageIds) as Array<{ message_id: string; payload_json: string }>
+
+  for (const row of rows) {
+    try {
+      const action = JSON.parse(row.payload_json) as ConversationUiAction
+      if (action.type !== 'navigate') continue
+      const messageActions = actions.get(row.message_id) ?? []
+      messageActions.push(action)
+      actions.set(row.message_id, messageActions)
+    } catch {
+      // Invalid local action data is ignored instead of breaking conversation history.
+    }
+  }
+  return actions
+}
 
 const ensureConversationOwnedBy = (conversationId: string, userId: number): void => {
   const row = getDatabase()
@@ -150,7 +187,8 @@ export const saveUserMessage = (conversationId: string, content: string): Conver
 export const saveAssistantMessage = (
   conversationId: string,
   content: string,
-  userId = requireActiveUser().id
+  userId = requireActiveUser().id,
+  uiActions: ConversationUiAction[] = []
 ): ConversationMessage => {
   const database = getDatabase()
   const now = new Date()
@@ -168,6 +206,13 @@ export const saveAssistantMessage = (
          VALUES (?, ?, ?, 'assistant', ?, ?, ?)`
       )
       .run(messageId, conversationId, userId, content, createdTime, createdAt)
+    const insertAction = database.prepare(
+      `INSERT INTO conversation_message_actions (id, message_id, position, payload_json, created_at)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+    uiActions.forEach((action, position) => {
+      insertAction.run(randomUUID(), messageId, position, JSON.stringify(action), createdAt)
+    })
     database
       .prepare('UPDATE conversations SET updated_at = ? WHERE id = ? AND creator_id = ?')
       .run(now.getTime(), conversationId, userId)
@@ -188,7 +233,7 @@ export const saveAssistantMessage = (
     )
     .get(messageId) as unknown as ConversationMessageRow
 
-  return toConversationMessage(row)
+  return { ...toConversationMessage(row), uiActions: uiActions.length > 0 ? uiActions : undefined }
 }
 
 export const listConversations = (): ConversationSummary[] => {
@@ -306,8 +351,10 @@ export const getConversationMessagePage = (
         )) as unknown as ConversationMessageRow[]
   const hasMore = rows.length > MESSAGE_PAGE_SIZE
 
+  const messages = rows.slice(0, MESSAGE_PAGE_SIZE).reverse().map(toConversationMessage)
+  const actionsByMessage = loadMessageActions(messages.map((message) => message.id))
   return {
-    messages: rows.slice(0, MESSAGE_PAGE_SIZE).reverse().map(toConversationMessage),
+    messages: messages.map((message) => ({ ...message, uiActions: actionsByMessage.get(message.id) })),
     hasMore
   }
 }

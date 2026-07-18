@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import {
   ArrowUp,
+  ArrowUpRight,
   Archive,
+  BookOpenText,
   LayoutGrid,
   Menu,
   Pin,
@@ -13,7 +15,11 @@ import {
 import { nextTick, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import { type ConversationSummary, useChatStore } from '../modules/chat/stores/chat'
+import {
+  type ChatUiAction,
+  type ConversationSummary,
+  useChatStore
+} from '../modules/chat/stores/chat'
 
 const message = ref('')
 const isDrawerOpen = ref(false)
@@ -142,6 +148,11 @@ const formatMessageTime = (createdAt?: number, fallback?: string): string => {
   return `${date.getFullYear()}-${month}-${day} ${hour}:${minute}:${second}`
 }
 
+const executeUiAction = (action: ChatUiAction): void => {
+  if (action.type !== 'navigate') return
+  void router.push({ name: action.routeName, params: action.params, query: action.query })
+}
+
 onMounted(() => {
   void chatStore.initialize()
   void nextTick(() => {
@@ -211,6 +222,21 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
           <time v-if="chatMessage.createdAt || chatMessage.createdTime" class="message-time">
             {{ formatMessageTime(chatMessage.createdAt, chatMessage.createdTime) }}
           </time>
+          <div v-if="chatMessage.role === 'assistant' && chatMessage.uiActions?.length" class="agent-actions">
+            <button
+              v-for="action in chatMessage.uiActions"
+              :key="`${action.routeName}-${action.label}`"
+              type="button"
+              @click="executeUiAction(action)"
+            >
+              <span class="agent-action__icon"><BookOpenText :size="18" :stroke-width="1.8" /></span>
+              <span class="agent-action__content">
+                <strong>{{ action.label }}</strong>
+                <small v-if="action.description">{{ action.description }}</small>
+              </span>
+              <ArrowUpRight :size="16" :stroke-width="1.8" />
+            </button>
+          </div>
         </div>
       </div>
     </main>
@@ -606,7 +632,7 @@ ul {
 }
 
 .messages article {
-  max-width: 78%;
+  max-width: 100%;
   padding: 10px 13px;
   white-space: pre-wrap;
   border-radius: 12px;
@@ -626,6 +652,8 @@ ul {
 
 .message-entry {
   display: flex;
+  width: fit-content;
+  max-width: 68%;
   flex-direction: column;
 }
 
@@ -644,6 +672,63 @@ ul {
   color: #969696;
   font-size: 12px;
   line-height: 1;
+}
+
+.agent-actions {
+  display: flex;
+  max-width: 100%;
+  margin-top: 8px;
+  gap: 8px;
+  align-self: flex-start;
+}
+
+.agent-actions button {
+  display: grid;
+  width: min(280px, 100%);
+  padding: 10px 12px;
+  gap: 10px;
+  align-items: center;
+  color: var(--color-accent-text);
+  cursor: pointer;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  text-align: left;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+}
+
+.agent-actions button:hover {
+  background: var(--color-accent-soft);
+}
+
+.agent-action__icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--color-accent-soft);
+}
+
+.agent-action__content {
+  display: flex;
+  min-width: 0;
+  gap: 2px;
+  flex-direction: column;
+}
+
+.agent-action__content strong {
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.agent-action__content small {
+  overflow: hidden;
+  color: var(--color-text-subtle);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .thinking {

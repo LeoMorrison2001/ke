@@ -8,6 +8,7 @@ interface ChatMessage {
   createdTime: string
   createdAt: number
   cursor: number
+  uiActions?: ChatUiAction[]
 }
 
 interface ConversationSummary {
@@ -42,6 +43,16 @@ interface ChatActivityEvent {
 interface ChatCompleteEvent {
   conversationId: string
   assistantMessage: ChatMessage
+  uiActions: ChatUiAction[]
+}
+
+interface ChatUiAction {
+  type: 'navigate'
+  label: string
+  description?: string
+  routeName: 'xiaoke-diary-today' | 'xiaoke-diary-entry'
+  params?: Record<string, string>
+  query?: Record<string, string>
 }
 
 interface ChatErrorEvent {
