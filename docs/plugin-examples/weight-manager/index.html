@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>体重管理</title>
+    <style>
+      :root { --page:#f7faf7; --surface:#fff; --text:#243128; --muted:#6f7b72; --border:#dfe8e1; --input-border:#cad8cd; --empty:#849088; color:var(--text); font-family:system-ui,"Microsoft YaHei",sans-serif; color-scheme:light; }
+      :root[data-theme="dark"] { --page:#181818; --surface:#202020; --text:#e4e8ee; --muted:#aeb7c3; --border:#343a36; --input-border:#4b554e; --empty:#8b978f; color-scheme:dark; }
+      body { max-width:620px; padding:28px; margin:0 auto; background:var(--page); }
+      h1 { margin:0; font-size:25px; } .subtitle { margin:8px 0 22px; color:var(--muted); }
+      .card { padding:18px; border:1px solid var(--border); border-radius:14px; background:var(--surface); }
+      .form { display:grid; gap:12px; grid-template-columns:1fr 1fr auto; align-items:end; }
+      label { display:grid; gap:6px; color:var(--muted); font-size:13px; }
+      input { box-sizing:border-box; width:100%; height:38px; padding:0 10px; color:var(--text); border:1px solid var(--input-border); border-radius:8px; background:var(--surface); font:inherit; }
+      button { height:38px; padding:0 14px; color:#fff; cursor:pointer; border:0; border-radius:8px; background:#3d8058; font:inherit; } button:hover { background:#34704c; }
+      #status { min-height:20px; margin:12px 0 0; color:var(--muted); font-size:13px; }
+      h2 { margin:26px 0 10px; font-size:16px; } #records { display:grid; gap:8px; padding:0; margin:0; list-style:none; }
+      .record { display:flex; padding:12px 14px; align-items:center; justify-content:space-between; border:1px solid var(--border); border-radius:10px; background:var(--surface); }
+      .record strong { font-size:16px; } .record span { color:var(--muted); font-size:13px; } .record button { height:29px; padding:0 10px; font-size:12px; }
+      .empty { padding:22px; color:var(--empty); text-align:center; border:1px dashed var(--input-border); border-radius:10px; }
+      @media (max-width:500px) { body { padding:18px; } .form { grid-template-columns:1fr; } }
+    </style>
+  </head>
+  <body>
+    <h1>体重管理</h1><p class="subtitle">记录每天的体重变化。</p>
+    <section class="card">
+      <div class="form">
+        <label>日期<input id="date" type="date" /></label>
+        <label>体重（kg）<input id="weight" type="number" min="1" max="500" step="0.1" placeholder="例如 62.5" /></label>
+        <button id="save">保存</button>
+      </div>
+      <p id="status"></p>
+    </section>
+    <h2>历史记录</h2><ul id="records"></ul>
+    <script type="module">
+      import { XiaokePlugin } from './xiaoke-plugin-sdk.js'
+      const plugin = new XiaokePlugin()
+      const date = document.querySelector('#date'), weight = document.querySelector('#weight')
+      const status = document.querySelector('#status'), records = document.querySelector('#records')
+      let data = {}
+
+      plugin.onAgentInvoke = async (capabilityId, input) => {
+        if (capabilityId !== 'weight.record' || !input || typeof input !== 'object') return { status: 'failed', replyHint: '不支持的体重操作。' }
+        const { date: day, weightKg } = input
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !Number.isFinite(Number(weightKg)) || Number(weightKg) < 1 || Number(weightKg) > 500) return { status: 'failed', replyHint: '日期或体重无效。' }
+        data[day] = Math.round(Number(weightKg) * 10) / 10
+        await plugin.storage.set('weights', data)
+        return { status: 'completed', replyHint: `已记录 ${day} 的体重：${Number(weightKg).toFixed(1)} kg。` }
+      }
+      plugin.onThemeChange((theme) => { document.documentElement.dataset.theme = theme })
+
+      const today = new Date()
+      date.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+      const render = () => {
+        const entries = Object.entries(data).sort(([a], [b]) => b.localeCompare(a))
+        records.innerHTML = entries.length
+          ? entries.map(([day, value]) => `<li class="record"><span>${day}</span><strong>${Number(value).toFixed(1)} kg</strong><button data-day="${day}">修改</button></li>`).join('')
+          : '<li class="empty">还没有体重记录</li>'
+        document.querySelectorAll('[data-day]').forEach((button) => {
+          button.onclick = () => { date.value = button.dataset.day; weight.value = data[button.dataset.day]; weight.focus() }
+        })
+      }
+      const saveWeight = async (day, value) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !Number.isFinite(value) || value < 1 || value > 500) throw new Error('日期或体重无效。')
+        data[day] = Math.round(value * 10) / 10
+        await plugin.storage.set('weights', data)
+        render()
+      }
+      try { data = await plugin.storage.get('weights') || {}; render() } catch (error) { status.textContent = error.message }
+      document.querySelector('#save').onclick = async () => {
+        const value = Number(weight.value)
+        if (!date.value || !Number.isFinite(value) || value < 1 || value > 500) { status.textContent = '请输入 1 到 500 kg 的有效体重。'; return }
+        try { await saveWeight(date.value, value); status.textContent = `${date.value} 的体重已保存。` }
+        catch (error) { status.textContent = error instanceof Error ? `保存失败：${error.message}` : '保存失败。' }
+      }
+    </script>
+  </body>
+</html>

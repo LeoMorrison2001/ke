@@ -1,0 +1,27 @@
+{
+  "id": "example.weight-manager",
+  "name": "体重管理",
+  "version": "1.0.0",
+  "description": "记录、查看和修改每天的体重。",
+  "entryRouteName": "plugin-host",
+  "uiEntry": "index.html",
+  "permissions": ["storage.read", "storage.write"],
+  "source": "third-party",
+  "agentCapabilities": [
+    {
+      "id": "weight.record",
+      "name": "记录体重",
+      "description": "记录或修改用户明确提供的指定日期体重。体重必须为公斤，日期为 YYYY-MM-DD。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "体重记录日期" },
+          "weightKg": { "type": "number", "minimum": 1, "maximum": 500, "description": "体重，单位为 kg" }
+        },
+        "required": ["date", "weightKg"],
+        "additionalProperties": false
+      },
+      "permissions": ["storage.write"]
+    }
+  ]
+}

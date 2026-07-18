@@ -1,1 +1,33 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>快速便签</title><style>:root{--page:#fff;--text:#252525;--border:#d9dde3;--muted:#667085;color:var(--text);color-scheme:light}:root[data-theme="dark"]{--page:#181818;--text:#e4e8ee;--border:#404040;--muted:#aeb7c3;color-scheme:dark}body{font:14px system-ui;margin:24px;color:var(--text);background:var(--page)}textarea{box-sizing:border-box;width:100%;height:120px;padding:10px;color:var(--text);border:1px solid var(--border);background:var(--page)}button{margin-top:10px;padding:7px 12px;color:var(--text);border:1px solid var(--border);background:var(--page)}#status{margin-top:10px;color:var(--muted)}</style><body><h1>快速便签</h1><p id="hello"></p><textarea id="note" placeholder="写下一条便签"></textarea><br><button id="save">保存</button><button id="ask">让小可整理</button><p id="status"></p><script type="module">import{XiaokePlugin}from'./xiaoke-plugin-sdk.js';const p=new XiaokePlugin(),note=document.querySelector('#note'),status=document.querySelector('#status');p.onThemeChange((theme)=>{document.documentElement.dataset.theme=theme});try{const u=await p.getUserProfile();document.querySelector('#hello').textContent=`你好，${u.preferredName||u.name}`;note.value=await p.storage.get('note')||''}catch(e){status.textContent=e.message}document.querySelector('#save').onclick=async()=>{await p.storage.set('note',note.value);status.textContent='已保存'};document.querySelector('#ask').onclick=async()=>{const r=await p.askAgent(`请把这条便签整理成简短待办：${note.value}`);status.textContent=r.reply};p.onAgentInvoke=async(id,input)=>id==='note.save'&&typeof input.content==='string'?(await p.storage.set('note',input.content),{status:'completed',replyHint:'已保存便签。'}):{status:'failed',replyHint:'不支持的能力。'};</script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8">
+  <title>快速便签</title>
+  <style>
+    :root { --page:#fff; --text:#252525; --border:#d9dde3; --muted:#667085; color:var(--text); color-scheme:light; }
+    :root[data-theme="dark"] { --page:#181818; --text:#e4e8ee; --border:#404040; --muted:#aeb7c3; color-scheme:dark; }
+    body { margin:24px; color:var(--text); background:var(--page); font:14px system-ui; }
+    textarea { box-sizing:border-box; width:100%; height:120px; padding:10px; color:var(--text); border:1px solid var(--border); background:var(--page); }
+    button { padding:7px 12px; margin-top:10px; color:var(--text); border:1px solid var(--border); background:var(--page); }
+    #status { margin-top:10px; color:var(--muted); }
+  </style>
+  <body>
+    <h1>快速便签</h1><p id="hello"></p>
+    <textarea id="note" placeholder="写下一条便签"></textarea><br>
+    <button id="save">保存</button><button id="ask">让小可整理</button><p id="status"></p>
+    <script type="module">
+      import { XiaokePlugin } from './xiaoke-plugin-sdk.js'
+      const p = new XiaokePlugin(), note = document.querySelector('#note'), status = document.querySelector('#status')
+      p.onAgentInvoke = async (id, input) => id === 'note.save' && input && typeof input.content === 'string'
+        ? (await p.storage.set('note', input.content), { status: 'completed', replyHint: '已保存便签。' })
+        : { status: 'failed', replyHint: '不支持的能力。' }
+      p.onThemeChange((theme) => { document.documentElement.dataset.theme = theme })
+      try {
+        const u = await p.getUserProfile()
+        document.querySelector('#hello').textContent = `你好，${u.preferredName || u.name}`
+        note.value = await p.storage.get('note') || ''
+      } catch (e) { status.textContent = e.message }
+      document.querySelector('#save').onclick = async () => { await p.storage.set('note', note.value); status.textContent = '已保存' }
+      document.querySelector('#ask').onclick = async () => { const r = await p.askAgent(`请把这条便签整理成简短待办：${note.value}`); status.textContent = r.reply }
+    </script>
+  </body>
+</html>

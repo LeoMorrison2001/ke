@@ -2,15 +2,65 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 interface RuntimePlugin { id: string; url: string }
+interface AgentInvocation { invocationId: string; pluginId: string; capabilityId: string; input?: unknown }
+interface PendingInvocation { invocation: AgentInvocation; timeoutId: number }
 const plugins = ref<RuntimePlugin[]>([])
 const frames = new Map<string, HTMLIFrameElement>()
+const readyPluginIds = new Set<string>()
+const pendingInvocations = new Map<string, PendingInvocation>()
 
 const registerFrame = (pluginId: string, element: unknown): void => {
-  if (element instanceof HTMLIFrameElement) frames.set(pluginId, element)
+  if (element instanceof HTMLIFrameElement) {
+    frames.set(pluginId, element)
+  } else {
+    frames.delete(pluginId)
+    readyPluginIds.delete(pluginId)
+  }
 }
 
 const postResult = (source: MessageEventSource | null, invocationId: string, result: unknown): void => {
   source?.postMessage({ type: 'ke-plugin:agent-result', invocationId, result }, '*')
+}
+
+const deliverInvocation = (invocation: AgentInvocation): boolean => {
+  const frame = frames.get(invocation.pluginId)
+  if (!readyPluginIds.has(invocation.pluginId) || !frame?.contentWindow) return false
+  frame.contentWindow.postMessage({ type: 'ke-plugin:agent-invoke', ...invocation }, '*')
+  return true
+}
+
+const flushPendingInvocations = (pluginId: string): void => {
+  for (const [invocationId, pending] of pendingInvocations) {
+    if (pending.invocation.pluginId !== pluginId || !deliverInvocation(pending.invocation)) continue
+    window.clearTimeout(pending.timeoutId)
+    pendingInvocations.delete(invocationId)
+  }
+}
+
+const markFrameReady = (pluginId: string): void => {
+  readyPluginIds.add(pluginId)
+  flushPendingInvocations(pluginId)
+}
+
+const queueInvocation = (invocation: AgentInvocation): void => {
+  if (deliverInvocation(invocation)) return
+  const timeoutId = window.setTimeout(() => {
+    if (!pendingInvocations.delete(invocation.invocationId)) return
+    window.api.plugins.resolveAgentInvocation(invocation.invocationId, {
+      status: 'failed',
+      replyHint: '应用 Agent 启动超时，请稍后重试。'
+    })
+  }, 5_000)
+  pendingInvocations.set(invocation.invocationId, { invocation, timeoutId })
+}
+
+const refreshPlugins = async (): Promise<void> => {
+  const installed = await window.api.plugins.listInstalled()
+  plugins.value = installed.flatMap((plugin) => {
+    const entry = plugin.manifest.uiEntry
+    if (!plugin.enabled || plugin.manifest.source !== 'third-party' || !entry || !plugin.manifest.agentCapabilities?.length) return []
+    return [{ id: plugin.manifest.id, url: `ke-plugin://${plugin.manifest.id}/${entry.split('/').map(encodeURIComponent).join('/')}` }]
+  })
 }
 
 const handleMessage = (event: MessageEvent<unknown>): void => {
@@ -30,33 +80,27 @@ const handleMessage = (event: MessageEvent<unknown>): void => {
 }
 
 onMounted(async () => {
-  const installed = await window.api.plugins.listInstalled()
-  plugins.value = installed.flatMap((plugin) => {
-    const entry = plugin.manifest.uiEntry
-    if (!plugin.enabled || plugin.manifest.source !== 'third-party' || !entry || !plugin.manifest.agentCapabilities?.length) return []
-    return [{ id: plugin.manifest.id, url: `ke-plugin://${plugin.manifest.id}/${entry.split('/').map(encodeURIComponent).join('/')}` }]
-  })
+  await refreshPlugins()
   window.api.plugins.registerAgentRuntime()
   window.addEventListener('message', handleMessage)
+  window.addEventListener('applications:changed', refreshPlugins)
   window.api.plugins.onAgentInvoke((value) => {
-    const invocation = value as { invocationId?: string; pluginId?: string; capabilityId?: string; input?: unknown }
+    const invocation = value as Partial<AgentInvocation>
     if (!invocation.invocationId || !invocation.pluginId || !invocation.capabilityId) return
-    const frame = frames.get(invocation.pluginId)
-    if (!frame?.contentWindow) {
-      window.api.plugins.resolveAgentInvocation(invocation.invocationId, {
-        status: 'failed',
-        replyHint: '应用 Agent 运行时尚未准备完成，请稍后重试。'
-      })
-      return
-    }
-    frame.contentWindow.postMessage({ type: 'ke-plugin:agent-invoke', ...invocation }, '*')
+    queueInvocation(invocation as AgentInvocation)
   })
 })
 
-onBeforeUnmount(() => { window.api.plugins.unregisterAgentRuntime(); window.removeEventListener('message', handleMessage) })
+onBeforeUnmount(() => {
+  window.api.plugins.unregisterAgentRuntime()
+  window.removeEventListener('message', handleMessage)
+  window.removeEventListener('applications:changed', refreshPlugins)
+  pendingInvocations.forEach((pending) => window.clearTimeout(pending.timeoutId))
+  pendingInvocations.clear()
+})
 </script>
 
-<template><div aria-hidden="true" class="plugin-agent-runtime"><iframe v-for="plugin in plugins" :key="plugin.id" :src="plugin.url" sandbox="allow-scripts" :ref="(element) => registerFrame(plugin.id, element)"></iframe></div></template>
+<template><div aria-hidden="true" class="plugin-agent-runtime"><iframe v-for="plugin in plugins" :key="plugin.id" :src="plugin.url" sandbox="allow-scripts" :ref="(element) => registerFrame(plugin.id, element)" @load="markFrameReady(plugin.id)"></iframe></div></template>
 
 <style scoped>
 .plugin-agent-runtime {

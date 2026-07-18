@@ -51,7 +51,11 @@ export class XiaokePlugin {
       const result = await this.onAgentInvoke?.(message.capabilityId, message.input)
       window.parent.postMessage({ type: 'ke-plugin:agent-result', invocationId: message.invocationId, result }, '*')
     } catch (error) {
-      window.parent.postMessage({ type: 'ke-plugin:agent-result', invocationId: message.invocationId, result: { status: 'failed', replyHint: error instanceof Error ? error.message : '应用 Agent 执行失败。' } }, '*')
+      window.parent.postMessage({
+        type: 'ke-plugin:agent-result',
+        invocationId: message.invocationId,
+        result: { status: 'failed', replyHint: error instanceof Error ? error.message : '应用 Agent 执行失败。' }
+      }, '*')
     }
   }
 }

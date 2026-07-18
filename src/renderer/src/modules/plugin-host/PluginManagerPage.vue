@@ -8,6 +8,7 @@ const plugins = ref<InstalledPlugin[]>([])
 const pluginPendingUninstall = ref<InstalledPlugin>()
 const errorMessage = ref('')
 const thirdPartyPlugins = computed(() => plugins.value.filter((plugin) => plugin.manifest.source === 'third-party'))
+const notifyApplicationChange = (): void => window.dispatchEvent(new Event('applications:changed'))
 
 const refresh = async (): Promise<void> => {
   errorMessage.value = ''
@@ -18,6 +19,7 @@ const installPlugin = async (): Promise<void> => {
   try {
     await window.api.plugins.chooseAndInstall()
     await refresh()
+    notifyApplicationChange()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '导入应用失败。'
   }
@@ -27,6 +29,7 @@ const setEnabled = async (plugin: InstalledPlugin, enabled: boolean): Promise<vo
   try {
     await window.api.plugins.setEnabled(plugin.manifest.id, enabled)
     await refresh()
+    notifyApplicationChange()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '更新应用状态失败。'
   }
@@ -44,6 +47,7 @@ const uninstall = async (): Promise<void> => {
     if (await window.api.plugins.uninstall(plugin.manifest.id)) {
       pluginPendingUninstall.value = undefined
       await refresh()
+      notifyApplicationChange()
     }
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '卸载应用失败。'
