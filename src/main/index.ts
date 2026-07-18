@@ -27,7 +27,13 @@ import {
   toggleConversationPinned
 } from './modules/chat/conversation-repository'
 import { streamDialogue } from './ai/dialogue-service'
-import { ensureDiaryEntry, saveDiaryEntry, type SaveDiaryEntryInput } from './modules/diary/diary-repository'
+import {
+  ensureDiaryEntry,
+  getDiaryEntry,
+  listDiaryCalendarEntries,
+  saveDiaryEntry,
+  type SaveDiaryEntryInput
+} from './modules/diary/diary-repository'
 import {
   createInitialUser,
   createUser,
@@ -139,6 +145,12 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('diary:ensure-entry', (_event, entryDate: string) => ensureDiaryEntry(entryDate))
+
+  ipcMain.handle('diary:get-entry', (_event, entryDate: string) => getDiaryEntry(entryDate))
+
+  ipcMain.handle('diary:list-calendar-entries', (_event, month: string) =>
+    listDiaryCalendarEntries(month)
+  )
 
   ipcMain.handle('diary:save-entry', (_event, input: SaveDiaryEntryInput) => saveDiaryEntry(input))
 

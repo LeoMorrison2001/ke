@@ -34,6 +34,11 @@ export interface SaveDiaryEntryInput {
   moodCode: DiaryMoodCode
 }
 
+export interface DiaryCalendarEntry {
+  entryDate: string
+  moodCode: DiaryMoodCode
+}
+
 interface DiaryEntryRow {
   id: string
   entry_date: string
@@ -81,6 +86,19 @@ const toDiaryEntry = (row: DiaryEntryRow): DiaryEntry => ({
 const validateEntryDate = (entryDate: string): string => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(entryDate)) throw new Error('日记日期无效。')
   return entryDate
+}
+
+const validateMonth = (month: string): string => {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new Error('日历月份无效。')
+  return month
+}
+
+const getNextMonth = (month: string): string => {
+  const year = Number(month.slice(0, 4))
+  const monthNumber = Number(month.slice(5, 7))
+  const nextYear = monthNumber === 12 ? year + 1 : year
+  const nextMonth = monthNumber === 12 ? 1 : monthNumber + 1
+  return `${nextYear}-${String(nextMonth).padStart(2, '0')}`
 }
 
 const validateContent = (content: string): string => {
@@ -137,6 +155,35 @@ export const ensureDiaryEntry = (entryDate: string): DiaryEntry => {
   const row = getEntryRow(user.id, normalizedDate)
   if (!row) throw new Error('创建日记失败。')
   return toDiaryEntry(row)
+}
+
+export const getDiaryEntry = (entryDate: string): DiaryEntry | undefined => {
+  const user = requireActiveUser()
+  const normalizedDate = validateEntryDate(entryDate)
+  const row = getEntryRow(user.id, normalizedDate)
+  return row ? toDiaryEntry(row) : undefined
+}
+
+export const listDiaryCalendarEntries = (month: string): DiaryCalendarEntry[] => {
+  const user = requireActiveUser()
+  const normalizedMonth = validateMonth(month)
+  const nextMonth = getNextMonth(normalizedMonth)
+  const rows = getDatabase()
+    .prepare(
+      `SELECT entry_date, mood_code
+       FROM diary_entries
+       WHERE user_id = ?
+         AND entry_date >= ?
+         AND entry_date < ?
+         AND updated_at > created_at
+       ORDER BY entry_date ASC`
+    )
+    .all(user.id, `${normalizedMonth}-01`, `${nextMonth}-01`) as Array<{
+    entry_date: string
+    mood_code: DiaryMoodCode
+  }>
+
+  return rows.map((row) => ({ entryDate: row.entry_date, moodCode: row.mood_code }))
 }
 
 export const saveDiaryEntry = (input: SaveDiaryEntryInput): DiaryEntry => {

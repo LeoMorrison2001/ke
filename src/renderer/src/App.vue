@@ -85,6 +85,10 @@ body,
   --color-accent-hover: #34704c;
   --color-accent-text: #28704a;
   --color-accent-soft: #f0f8f2;
+  --color-calendar-today-background: #252525;
+  --color-calendar-today-text: #fff;
+  --color-tip-background: #252525;
+  --color-tip-text: #fff;
   --color-danger: #bf4646;
   --color-on-accent: #fff;
   --shadow-modal: 0 16px 40px rgb(0 0 0 / 18%);
@@ -108,6 +112,10 @@ html[data-theme='dark'] {
   --color-accent-hover: #34704c;
   --color-accent-text: #a8d8b5;
   --color-accent-soft: #253d2d;
+  --color-calendar-today-background: #253d2d;
+  --color-calendar-today-text: #a8d8b5;
+  --color-tip-background: #3d8058;
+  --color-tip-text: #fff;
   --shadow-modal: 0 16px 40px rgb(0 0 0 / 45%);
 }
 

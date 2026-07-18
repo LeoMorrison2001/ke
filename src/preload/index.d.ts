@@ -155,8 +155,15 @@ interface SaveDiaryEntryInput {
   moodCode: DiaryMoodCode
 }
 
+interface DiaryCalendarEntry {
+  entryDate: string
+  moodCode: DiaryMoodCode
+}
+
 interface DiaryApi {
   ensureEntry: (entryDate: string) => Promise<DiaryEntry>
+  getEntry: (entryDate: string) => Promise<DiaryEntry | undefined>
+  listCalendarEntries: (month: string) => Promise<DiaryCalendarEntry[]>
   saveEntry: (input: SaveDiaryEntryInput) => Promise<DiaryEntry>
 }
 

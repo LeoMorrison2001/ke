@@ -2,6 +2,8 @@
 import { Bookmark, Cloud, MapPin, Zap } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+const props = defineProps<{ entryDate?: string; readOnly?: boolean }>()
+
 interface MoodOption {
   code: 'happy' | 'calm' | 'content' | 'low' | 'irritable' | 'tired'
   emoji: string
@@ -43,8 +45,18 @@ const weatherOptions: WeatherOption[] = [
 ]
 
 const weekdayNames = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
-const today = new Date()
-const entryDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+const toLocalDate = (dateText?: string): Date => {
+  if (!dateText) return new Date()
+  const [year, month, date] = dateText.split('-').map(Number)
+  const parsedDate = new Date(year, month - 1, date)
+  return Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate
+}
+
+const diaryDate = computed(() => toLocalDate(props.entryDate))
+const diaryEntryDate = computed(() => {
+  const value = diaryDate.value
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
+})
 const diaryContent = ref('')
 const selectedMood = ref<MoodOption>(moods[0])
 const selectedWeather = ref<WeatherOption>(weatherOptions[0])
@@ -55,6 +67,7 @@ const moodPicker = ref<HTMLElement>()
 const weatherPicker = ref<HTMLElement>()
 const saveStatus = ref<'loading' | 'unsaved' | 'saving' | 'saved' | 'error'>('loading')
 const saveError = ref('')
+const hasExistingEntry = ref(false)
 let isDiaryReady = false
 let isSaving = false
 let savedSnapshot: DiarySnapshot | undefined
@@ -69,14 +82,16 @@ interface DiarySnapshot {
 }
 
 const formattedDate = computed(() => {
-  const year = today.getFullYear()
-  const month = String(today.getMonth() + 1).padStart(2, '0')
-  const date = String(today.getDate()).padStart(2, '0')
-  return `${year}年${month}月${date}日 ${weekdayNames[today.getDay()]}`
+  const value = diaryDate.value
+  const year = value.getFullYear()
+  const month = String(value.getMonth() + 1).padStart(2, '0')
+  const date = String(value.getDate()).padStart(2, '0')
+  return `${year}年${month}月${date}日 ${weekdayNames[value.getDay()]}`
 })
 
 const characterCount = computed(() => Array.from(diaryContent.value).length)
 const saveStatusText = computed(() => {
+  if (props.readOnly) return hasExistingEntry.value ? '只读查看' : '暂无日记'
   if (saveStatus.value === 'loading') return '正在读取'
   if (saveStatus.value === 'unsaved') return '未保存'
   if (saveStatus.value === 'saving') return '保存中'
@@ -119,7 +134,7 @@ const saveDiary = async (): Promise<void> => {
   saveStatus.value = 'saving'
   saveError.value = ''
   try {
-    await window.api.diary.saveEntry({ entryDate, ...snapshot })
+    await window.api.diary.saveEntry({ entryDate: diaryEntryDate.value, ...snapshot })
     savedSnapshot = snapshot
     saveStatus.value = isSameSnapshot(savedSnapshot, getSnapshot()) ? 'saved' : 'unsaved'
   } catch (error) {
@@ -134,7 +149,7 @@ const saveDiary = async (): Promise<void> => {
 }
 
 const scheduleSave = (delay: number): void => {
-  if (!isDiaryReady) return
+  if (!isDiaryReady || props.readOnly) return
   saveStatus.value = 'unsaved'
   saveError.value = ''
   clearTimeout(debounceTimer)
@@ -148,6 +163,7 @@ const scheduleSave = (delay: number): void => {
 }
 
 const flushSave = (): void => {
+  if (props.readOnly) return
   if (!isSameSnapshot(savedSnapshot, getSnapshot())) void saveDiary()
 }
 
@@ -184,13 +200,18 @@ onMounted(() => {
   document.addEventListener('click', closePickersOnOutsideClick)
   const initializeDiary = async (): Promise<void> => {
     try {
-      const entry = await window.api.diary.ensureEntry(entryDate)
-      diaryContent.value = entry.content
-      locationText.value = entry.locationText
-      selectedWeather.value = weatherOptions.find((item) => item.code === entry.weatherCode) ?? weatherOptions[0]
-      selectedMood.value = moods.find((item) => item.code === entry.moodCode) ?? moods[0]
+      const entry = props.entryDate
+        ? await window.api.diary.getEntry(diaryEntryDate.value)
+        : await window.api.diary.ensureEntry(diaryEntryDate.value)
+      if (entry) {
+        hasExistingEntry.value = true
+        diaryContent.value = entry.content
+        locationText.value = entry.locationText
+        selectedWeather.value = weatherOptions.find((item) => item.code === entry.weatherCode) ?? weatherOptions[0]
+        selectedMood.value = moods.find((item) => item.code === entry.moodCode) ?? moods[0]
+      }
       savedSnapshot = getSnapshot()
-      saveStatus.value = 'saved'
+      saveStatus.value = entry ? 'saved' : 'unsaved'
       isDiaryReady = true
     } catch (error) {
       saveStatus.value = 'error'
@@ -220,6 +241,7 @@ onBeforeUnmount(() => {
               v-model="locationText"
               placeholder="输入位置"
               aria-label="位置"
+              :disabled="props.readOnly"
               @input="scheduleSave(800)"
             />
           </label>
@@ -228,6 +250,7 @@ onBeforeUnmount(() => {
               class="detail-chip weather-trigger"
               type="button"
               :aria-expanded="isWeatherPickerOpen"
+              :disabled="props.readOnly"
               @click="toggleWeatherPicker"
             >
               <span class="picker-emoji">{{ selectedWeather.emoji }}</span>{{ selectedWeather.label }}
@@ -251,6 +274,7 @@ onBeforeUnmount(() => {
               class="detail-chip mood-trigger"
               type="button"
               :aria-expanded="isMoodPickerOpen"
+              :disabled="props.readOnly"
               @click="toggleMoodPicker"
             >
               <span class="picker-emoji">{{ selectedMood.emoji }}</span>
@@ -276,7 +300,7 @@ onBeforeUnmount(() => {
         <button class="bookmark-button" type="button" aria-label="收藏日记">
           <Bookmark :size="18" :stroke-width="1.6" />
         </button>
-        <span :class="{ 'save-status--error': saveStatus === 'error' }">
+        <span v-if="!props.readOnly" :class="{ 'save-status--error': saveStatus === 'error' }">
           <Cloud :size="14" />{{ saveStatusText }}
         </span>
       </div>
@@ -286,13 +310,14 @@ onBeforeUnmount(() => {
       <div class="editor-card__body">
         <textarea
           v-model="diaryContent"
-          placeholder="从这里开始记录今天吧..."
+          :placeholder="props.readOnly ? '这一天还没有写日记' : '从这里开始记录今天吧...'"
           aria-label="日记内容"
+          :readonly="props.readOnly"
           @input="scheduleSave(1000)"
         />
       </div>
       <footer class="editor-card__footer">
-        <span><Zap :size="14" />会在停止输入后自动保存</span>
+        <span><Zap :size="14" />{{ props.readOnly ? '看看过去的日记吧' : '会在停止输入后自动保存' }}</span>
         <span>{{ characterCount }} 字</span>
       </footer>
     </section>
@@ -373,6 +398,18 @@ h2 {
 .mood-trigger:hover,
 .weather-trigger:hover {
   background: var(--color-surface-hover);
+}
+
+.mood-trigger:disabled,
+.weather-trigger:disabled,
+.location-input input:disabled,
+textarea:read-only {
+  cursor: default;
+}
+
+.mood-trigger:disabled:hover,
+.weather-trigger:disabled:hover {
+  background: var(--color-surface);
 }
 
 .location-input {

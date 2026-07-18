@@ -95,6 +95,11 @@ interface SaveDiaryEntryInput {
   moodCode: DiaryMoodCode
 }
 
+interface DiaryCalendarEntry {
+  entryDate: string
+  moodCode: DiaryMoodCode
+}
+
 interface ActiveUser {
   id: number
   name: string
@@ -135,6 +140,10 @@ const api = {
   diary: {
     ensureEntry: (entryDate: string): Promise<DiaryEntry> =>
       ipcRenderer.invoke('diary:ensure-entry', entryDate),
+    getEntry: (entryDate: string): Promise<DiaryEntry | undefined> =>
+      ipcRenderer.invoke('diary:get-entry', entryDate),
+    listCalendarEntries: (month: string): Promise<DiaryCalendarEntry[]> =>
+      ipcRenderer.invoke('diary:list-calendar-entries', month),
     saveEntry: (input: SaveDiaryEntryInput): Promise<DiaryEntry> =>
       ipcRenderer.invoke('diary:save-entry', input)
   },

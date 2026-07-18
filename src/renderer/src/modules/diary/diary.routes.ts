@@ -2,6 +2,7 @@ import type { RouteRecordRaw } from 'vue-router'
 import DiaryLayout from './DiaryLayout.vue'
 import DiarySectionPage from './pages/DiarySectionPage.vue'
 import DiaryTodayPage from './pages/DiaryTodayPage.vue'
+import DiaryCalendarPage from './pages/DiaryCalendarPage.vue'
 
 export const diaryRoutes: RouteRecordRaw[] = [
   {
@@ -18,8 +19,13 @@ export const diaryRoutes: RouteRecordRaw[] = [
       {
         path: 'calendar',
         name: 'xiaoke-diary-calendar',
-        component: DiarySectionPage,
-        props: { title: '日历' }
+        component: DiaryCalendarPage
+      },
+      {
+        path: 'entry/:entryDate',
+        name: 'xiaoke-diary-entry',
+        component: DiaryTodayPage,
+        props: (route) => ({ entryDate: route.params.entryDate, readOnly: true })
       },
       {
         path: 'timeline',
