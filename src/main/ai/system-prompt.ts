@@ -1,4 +1,4 @@
-import type { ActiveUser } from '../user-repository'
+import type { ActiveUser } from '../modules/users/user-repository'
 
 const formatDate = (date: Date): string => {
   const year = date.getFullYear()

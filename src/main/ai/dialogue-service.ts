@@ -3,8 +3,8 @@ import {
   getConversationMessagesForModel,
   saveAssistantMessage,
   type ConversationMessage
-} from '../conversation-repository'
-import type { ActiveUser } from '../user-repository'
+} from '../modules/chat/conversation-repository'
+import type { ActiveUser } from '../modules/users/user-repository'
 import { getChatModel } from './model-client'
 import { generationActivity, type AiActivity } from './activity'
 import { buildSystemPrompt } from './system-prompt'

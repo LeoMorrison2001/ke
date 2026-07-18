@@ -13,7 +13,7 @@ import {
 import { nextTick, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import { type ConversationSummary, useChatStore } from '../stores/chat'
+import { type ConversationSummary, useChatStore } from '../modules/chat/stores/chat'
 
 const message = ref('')
 const isDrawerOpen = ref(false)

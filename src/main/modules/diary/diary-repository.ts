@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { getDatabase } from './database'
-import { requireActiveUser } from './user-repository'
+import { getDatabase } from '../../database'
+import { requireActiveUser } from '../users/user-repository'
 
 export type DiaryWeatherCode =
   | 'sunny'

@@ -25,9 +25,9 @@ import {
   listConversations,
   saveUserMessage,
   toggleConversationPinned
-} from './conversation-repository'
+} from './modules/chat/conversation-repository'
 import { streamDialogue } from './ai/dialogue-service'
-import { ensureDiaryEntry, saveDiaryEntry, type SaveDiaryEntryInput } from './diary-repository'
+import { ensureDiaryEntry, saveDiaryEntry, type SaveDiaryEntryInput } from './modules/diary/diary-repository'
 import {
   createInitialUser,
   createUser,
@@ -38,7 +38,7 @@ import {
   switchActiveUser,
   updateUser,
   type CreateUserInput
-} from './user-repository'
+} from './modules/users/user-repository'
 
 const streamChat = async (sender: Electron.WebContents, conversationId: string): Promise<void> => {
   try {

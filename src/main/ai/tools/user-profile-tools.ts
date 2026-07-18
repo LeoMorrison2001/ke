@@ -6,7 +6,7 @@ import {
   updateActiveUserName,
   updateActiveUserPreferredName,
   type UserGender
-} from '../../user-repository'
+} from '../../modules/users/user-repository'
 
 interface PreferredNameToolOutput {
   changed: boolean

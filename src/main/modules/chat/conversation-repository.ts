@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { getDatabase } from './database'
-import { requireActiveUser } from './user-repository'
+import { getDatabase } from '../../database'
+import { requireActiveUser } from '../users/user-repository'
 
 const MESSAGE_PAGE_SIZE = 10
 

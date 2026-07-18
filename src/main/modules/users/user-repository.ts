@@ -1,4 +1,4 @@
-import { getDatabase } from './database'
+import { getDatabase } from '../../database'
 import { randomUUID } from 'node:crypto'
 
 export type UserGender = 'male' | 'female'
