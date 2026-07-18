@@ -160,10 +160,25 @@ interface DiaryCalendarEntry {
   moodCode: DiaryMoodCode
 }
 
+interface DiaryTimelineEntry {
+  entryDate: string
+  contentPreview: string
+  locationText: string
+  weatherCode: DiaryWeatherCode
+  moodCode: DiaryMoodCode
+}
+
+interface ListDiaryTimelineInput {
+  cursorDate?: string
+  direction: 'older' | 'newer'
+  limit: number
+}
+
 interface DiaryApi {
   ensureEntry: (entryDate: string) => Promise<DiaryEntry>
   getEntry: (entryDate: string) => Promise<DiaryEntry | undefined>
   listCalendarEntries: (month: string) => Promise<DiaryCalendarEntry[]>
+  listTimelineEntries: (input: ListDiaryTimelineInput) => Promise<DiaryTimelineEntry[]>
   saveEntry: (input: SaveDiaryEntryInput) => Promise<DiaryEntry>
 }
 

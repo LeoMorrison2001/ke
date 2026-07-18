@@ -11,9 +11,10 @@ const diaryMenu = [
   { title: '时间线', routeName: 'xiaoke-diary-timeline' },
   { title: '收藏', routeName: 'xiaoke-diary-favorites' }
 ] as const
-const activeRouteName = computed(() =>
-  route.name === 'xiaoke-diary-entry' ? 'xiaoke-diary-calendar' : route.name
-)
+const activeRouteName = computed(() => {
+  if (route.name !== 'xiaoke-diary-entry') return route.name
+  return route.query.from === 'timeline' ? 'xiaoke-diary-timeline' : 'xiaoke-diary-calendar'
+})
 const activeMenuItem = computed(() =>
   diaryMenu.find((item) => item.routeName === activeRouteName.value)
 )

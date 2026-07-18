@@ -100,6 +100,20 @@ interface DiaryCalendarEntry {
   moodCode: DiaryMoodCode
 }
 
+interface DiaryTimelineEntry {
+  entryDate: string
+  contentPreview: string
+  locationText: string
+  weatherCode: DiaryWeatherCode
+  moodCode: DiaryMoodCode
+}
+
+interface ListDiaryTimelineInput {
+  cursorDate?: string
+  direction: 'older' | 'newer'
+  limit: number
+}
+
 interface ActiveUser {
   id: number
   name: string
@@ -144,6 +158,8 @@ const api = {
       ipcRenderer.invoke('diary:get-entry', entryDate),
     listCalendarEntries: (month: string): Promise<DiaryCalendarEntry[]> =>
       ipcRenderer.invoke('diary:list-calendar-entries', month),
+    listTimelineEntries: (input: ListDiaryTimelineInput): Promise<DiaryTimelineEntry[]> =>
+      ipcRenderer.invoke('diary:list-timeline-entries', input),
     saveEntry: (input: SaveDiaryEntryInput): Promise<DiaryEntry> =>
       ipcRenderer.invoke('diary:save-entry', input)
   },

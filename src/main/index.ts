@@ -31,7 +31,9 @@ import {
   ensureDiaryEntry,
   getDiaryEntry,
   listDiaryCalendarEntries,
+  listDiaryTimelineEntries,
   saveDiaryEntry,
+  type ListDiaryTimelineInput,
   type SaveDiaryEntryInput
 } from './modules/diary/diary-repository'
 import {
@@ -150,6 +152,10 @@ app.whenReady().then(() => {
 
   ipcMain.handle('diary:list-calendar-entries', (_event, month: string) =>
     listDiaryCalendarEntries(month)
+  )
+
+  ipcMain.handle('diary:list-timeline-entries', (_event, input: ListDiaryTimelineInput) =>
+    listDiaryTimelineEntries(input)
   )
 
   ipcMain.handle('diary:save-entry', (_event, input: SaveDiaryEntryInput) => saveDiaryEntry(input))

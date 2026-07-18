@@ -3,6 +3,7 @@ import DiaryLayout from './DiaryLayout.vue'
 import DiarySectionPage from './pages/DiarySectionPage.vue'
 import DiaryTodayPage from './pages/DiaryTodayPage.vue'
 import DiaryCalendarPage from './pages/DiaryCalendarPage.vue'
+import DiaryTimelinePage from './pages/DiaryTimelinePage.vue'
 
 export const diaryRoutes: RouteRecordRaw[] = [
   {
@@ -30,8 +31,7 @@ export const diaryRoutes: RouteRecordRaw[] = [
       {
         path: 'timeline',
         name: 'xiaoke-diary-timeline',
-        component: DiarySectionPage,
-        props: { title: '时间线' }
+        component: DiaryTimelinePage
       },
       {
         path: 'favorites',

@@ -39,6 +39,20 @@ export interface DiaryCalendarEntry {
   moodCode: DiaryMoodCode
 }
 
+export interface DiaryTimelineEntry {
+  entryDate: string
+  contentPreview: string
+  locationText: string
+  weatherCode: DiaryWeatherCode
+  moodCode: DiaryMoodCode
+}
+
+export interface ListDiaryTimelineInput {
+  cursorDate?: string
+  direction: 'older' | 'newer'
+  limit: number
+}
+
 interface DiaryEntryRow {
   id: string
   entry_date: string
@@ -49,6 +63,14 @@ interface DiaryEntryRow {
   is_favorite: number
   created_at: number
   updated_at: number
+}
+
+interface DiaryTimelineEntryRow {
+  entry_date: string
+  content_preview: string
+  location_text: string
+  weather_code: DiaryWeatherCode
+  mood_code: DiaryMoodCode
 }
 
 const weatherCodes = new Set<DiaryWeatherCode>([
@@ -99,6 +121,11 @@ const getNextMonth = (month: string): string => {
   const nextYear = monthNumber === 12 ? year + 1 : year
   const nextMonth = monthNumber === 12 ? 1 : monthNumber + 1
   return `${nextYear}-${String(nextMonth).padStart(2, '0')}`
+}
+
+const validateTimelineLimit = (limit: number): number => {
+  if (!Number.isInteger(limit) || limit < 1 || limit > 20) throw new Error('时间线加载数量无效。')
+  return limit
 }
 
 const validateContent = (content: string): string => {
@@ -184,6 +211,49 @@ export const listDiaryCalendarEntries = (month: string): DiaryCalendarEntry[] =>
   }>
 
   return rows.map((row) => ({ entryDate: row.entry_date, moodCode: row.mood_code }))
+}
+
+export const listDiaryTimelineEntries = (
+  input: ListDiaryTimelineInput
+): DiaryTimelineEntry[] => {
+  const user = requireActiveUser()
+  const limit = validateTimelineLimit(input.limit)
+  if (input.direction !== 'older' && input.direction !== 'newer') throw new Error('时间线加载方向无效。')
+  const cursorDate = input.cursorDate ? validateEntryDate(input.cursorDate) : undefined
+  const database = getDatabase()
+
+  const rows =
+    input.direction === 'newer' && cursorDate
+      ? (database
+          .prepare(
+            `SELECT entry_date, substr(content, 1, 240) AS content_preview,
+                    location_text, weather_code, mood_code
+             FROM diary_entries
+             WHERE user_id = ? AND updated_at > created_at AND entry_date > ?
+             ORDER BY entry_date ASC
+             LIMIT ?`
+          )
+          .all(user.id, cursorDate, limit) as DiaryTimelineEntryRow[])
+      : (database
+          .prepare(
+            `SELECT entry_date, substr(content, 1, 240) AS content_preview,
+                    location_text, weather_code, mood_code
+             FROM diary_entries
+             WHERE user_id = ? AND updated_at > created_at
+               ${cursorDate ? 'AND entry_date < ?' : ''}
+             ORDER BY entry_date DESC
+             LIMIT ?`
+          )
+          .all(...(cursorDate ? [user.id, cursorDate, limit] : [user.id, limit])) as DiaryTimelineEntryRow[])
+
+  const entries = rows.map((row) => ({
+    entryDate: row.entry_date,
+    contentPreview: row.content_preview,
+    locationText: row.location_text,
+    weatherCode: row.weather_code,
+    moodCode: row.mood_code
+  }))
+  return input.direction === 'newer' ? entries.reverse() : entries
 }
 
 export const saveDiaryEntry = (input: SaveDiaryEntryInput): DiaryEntry => {

@@ -100,7 +100,11 @@ const openDiary = (day: CalendarDay): void => {
     return
   }
 
-  void router.push({ name: 'xiaoke-diary-entry', params: { entryDate: day.dateText } })
+  void router.push({
+    name: 'xiaoke-diary-entry',
+    params: { entryDate: day.dateText },
+    query: { from: 'calendar' }
+  })
 }
 
 watch(monthKey, () => void loadEntries(), { immediate: true })
