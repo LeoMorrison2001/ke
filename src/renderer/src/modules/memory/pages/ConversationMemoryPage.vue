@@ -20,6 +20,8 @@ interface ConversationMessage {
 }
 
 const conversations = ref<ConversationRecord[]>([])
+const hasMoreConversations = ref(false)
+const isLoadingConversations = ref(false)
 const selectedConversation = ref<ConversationRecord>()
 const messages = ref<ConversationMessage[]>([])
 const oldestCursor = ref<number>()
@@ -37,12 +39,31 @@ const formatUpdatedAt = (timestamp: number): string => {
   return `${month}-${day} ${hour}:${minute}`
 }
 
-const loadConversations = async (): Promise<void> => {
-  errorMessage.value = ''
+const loadConversations = async (reset = false): Promise<void> => {
+  if (isLoadingConversations.value || (!reset && !hasMoreConversations.value)) return
+  isLoadingConversations.value = true
+  if (reset) errorMessage.value = ''
   try {
-    conversations.value = await window.api.memory.listConversationSummaries()
+    const page = await window.api.memory.getConversationSummaryPage(
+      reset ? 0 : conversations.value.length
+    )
+    conversations.value = reset ? page.items : [...conversations.value, ...page.items]
+    hasMoreConversations.value = page.hasMore
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '读取对话记忆失败，请稍后重试。'
+  } finally {
+    isLoadingConversations.value = false
+  }
+}
+
+const loadMoreConversations = (): void => {
+  void loadConversations()
+}
+
+const handleConversationTableScroll = (event: Event): void => {
+  const target = event.target as HTMLDivElement
+  if (target.scrollTop + target.clientHeight >= target.scrollHeight - 80) {
+    loadMoreConversations()
   }
 }
 
@@ -90,11 +111,11 @@ const closeDialog = (): void => {
 }
 
 onMounted(() => {
-  void loadConversations()
+  void loadConversations(true)
   removeActiveChangeListener = window.api.user.onActiveChange(() => {
     selectedConversation.value = undefined
     messages.value = []
-    void loadConversations()
+    void loadConversations(true)
   })
 })
 
@@ -106,7 +127,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="conversation-memory">
     <div class="table-wrap">
-      <table>
+      <table class="conversation-table table-header">
         <colgroup>
           <col class="column-title" />
           <col class="column-date" />
@@ -125,6 +146,17 @@ onBeforeUnmount(() => {
             <th>操作</th>
           </tr>
         </thead>
+      </table>
+      <div class="table-scroll" @scroll="handleConversationTableScroll">
+        <table class="conversation-table table-body">
+          <colgroup>
+            <col class="column-title" />
+            <col class="column-date" />
+            <col class="column-time" />
+            <col class="column-count" />
+            <col class="column-status" />
+            <col class="column-actions" />
+          </colgroup>
         <tbody>
           <tr v-for="conversation in conversations" :key="conversation.id">
             <td :title="conversation.title">{{ conversation.title }}</td>
@@ -140,7 +172,12 @@ onBeforeUnmount(() => {
             <td class="empty-cell" colspan="6">暂无对话记忆</td>
           </tr>
         </tbody>
-      </table>
+        </table>
+        <p v-if="isLoadingConversations" class="table-load-state">加载中…</p>
+        <p v-else-if="!hasMoreConversations && conversations.length > 0" class="table-load-state">
+          已加载全部对话
+        </p>
+      </div>
     </div>
     <p v-if="errorMessage && !selectedConversation" class="page-error">{{ errorMessage }}</p>
 
@@ -184,16 +221,51 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .conversation-memory {
+  display: flex;
   width: 100%;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  flex-direction: column;
 }
 .table-wrap {
+  display: flex;
   box-sizing: border-box;
   width: 100%;
+  min-height: 0;
+  flex: 1;
   padding: 20px;
-  overflow-x: auto;
+  overflow: hidden;
+  flex-direction: column;
 }
-table {
+.table-scroll {
+  min-height: 0;
+  overflow: auto;
+  flex: 1;
+}
+.table-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.table-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #a9a9a9;
+}
+.table-scroll::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.table-load-state {
+  margin: 12px 0;
+  color: var(--color-text-subtle);
+  font-size: 13px;
+  text-align: center;
+}
+.conversation-table {
   width: 100%;
   min-width: 840px;
   table-layout: fixed;
@@ -201,7 +273,15 @@ table {
   color: var(--color-text-muted);
   font-size: 13px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+}
+.table-header {
+  overflow: hidden;
+  border-bottom: 0;
+  border-radius: 10px 10px 0 0;
+}
+.table-body {
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
 }
 th,
 td {

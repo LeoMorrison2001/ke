@@ -14,6 +14,23 @@ const {
 const isMaximized = ref(false)
 let removeMaximizeListener: (() => void) | undefined
 let removeSystemThemeListener: (() => void) | undefined
+const scrollbarTimers = new Map<HTMLElement, number>()
+
+const revealScrollbar = (event: Event): void => {
+  const target = event.target
+  if (!(target instanceof HTMLElement)) return
+
+  target.classList.add('scrollbar-visible')
+  const existingTimer = scrollbarTimers.get(target)
+  if (existingTimer !== undefined) window.clearTimeout(existingTimer)
+  scrollbarTimers.set(
+    target,
+    window.setTimeout(() => {
+      target.classList.remove('scrollbar-visible')
+      scrollbarTimers.delete(target)
+    }, 700)
+  )
+}
 
 onMounted(async () => {
   applyTheme()
@@ -22,11 +39,15 @@ onMounted(async () => {
   removeMaximizeListener = onMaximizeChange((maximized) => {
     isMaximized.value = maximized
   })
+  document.addEventListener('scroll', revealScrollbar, true)
 })
 
 onUnmounted(() => {
   removeMaximizeListener?.()
   removeSystemThemeListener?.()
+  document.removeEventListener('scroll', revealScrollbar, true)
+  scrollbarTimers.forEach((timer) => window.clearTimeout(timer))
+  scrollbarTimers.clear()
 })
 </script>
 
@@ -91,6 +112,7 @@ body,
   --color-tip-text: #fff;
   --color-danger: #bf4646;
   --color-on-accent: #fff;
+  --color-scrollbar-thumb: #a9a9a9;
   --shadow-modal: 0 16px 40px rgb(0 0 0 / 18%);
   --modal-backdrop-color: rgb(0 0 0 / 40%);
   --content-padding: 24px 40px 40px;
@@ -116,6 +138,7 @@ html[data-theme='dark'] {
   --color-calendar-today-text: #a8d8b5;
   --color-tip-background: #3d8058;
   --color-tip-text: #fff;
+  --color-scrollbar-thumb: #6e6e6e;
   --shadow-modal: 0 16px 40px rgb(0 0 0 / 45%);
 }
 
@@ -125,6 +148,31 @@ body {
 
 button {
   font: inherit;
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: transparent !important;
+  border-radius: 999px;
+  transition: background-color 180ms ease;
+}
+
+*.scrollbar-visible::-webkit-scrollbar-thumb {
+  background-color: var(--color-scrollbar-thumb) !important;
+}
+
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .app-window {

@@ -66,6 +66,11 @@ interface ConversationMemorySummary extends ConversationSummary {
   isArchived: boolean
 }
 
+interface TablePage<T> {
+  items: T[]
+  hasMore: boolean
+}
+
 interface DatabaseLocation {
   directory: string
   databasePath: string
@@ -228,6 +233,8 @@ const api = {
     createInitial: (input: CreateUserInput): Promise<ActiveUser> =>
       ipcRenderer.invoke('user:create-initial', input),
     list: (): Promise<UserSummary[]> => ipcRenderer.invoke('user:list'),
+    getPage: (offset?: number): Promise<TablePage<UserSummary>> =>
+      ipcRenderer.invoke('user:get-page', offset),
     create: (input: CreateUserInput): Promise<ActiveUser> =>
       ipcRenderer.invoke('user:create', input),
     update: (userId: number, input: CreateUserInput): Promise<UserSummary> =>
@@ -244,7 +251,9 @@ const api = {
   },
   memory: {
     listConversationSummaries: (): Promise<ConversationMemorySummary[]> =>
-      ipcRenderer.invoke('memory:list-conversation-summaries')
+      ipcRenderer.invoke('memory:list-conversation-summaries'),
+    getConversationSummaryPage: (offset?: number): Promise<TablePage<ConversationMemorySummary>> =>
+      ipcRenderer.invoke('memory:get-conversation-summary-page', offset)
   },
   settings: {
     getDatabaseLocation: (): Promise<DatabaseLocation> =>

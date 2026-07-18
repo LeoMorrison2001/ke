@@ -19,6 +19,7 @@ import {
 } from './database'
 import {
   archiveConversation,
+  getConversationMemorySummaryPage,
   getConversationOwnerId,
   getConversationMessagePage,
   listConversationMemorySummaries,
@@ -43,6 +44,7 @@ import {
   deleteUser,
   getActiveUser,
   getUserById,
+  getUserPage,
   listUsers,
   switchActiveUser,
   updateUser,
@@ -173,6 +175,8 @@ app.whenReady().then(() => {
 
   ipcMain.handle('user:list', () => listUsers())
 
+  ipcMain.handle('user:get-page', (_event, offset?: number) => getUserPage(offset))
+
   ipcMain.handle('user:create', (event, input: CreateUserInput) => {
     const user = createUser(input)
     event.sender.send('user:active-changed', user)
@@ -205,6 +209,10 @@ app.whenReady().then(() => {
 
   ipcMain.handle('memory:list-conversation-summaries', () => {
     return listConversationMemorySummaries()
+  })
+
+  ipcMain.handle('memory:get-conversation-summary-page', (_event, offset?: number) => {
+    return getConversationMemorySummaryPage(offset)
   })
 
   ipcMain.handle('chat:toggle-conversation-pinned', (_event, conversationId: string) => {

@@ -73,6 +73,11 @@ interface ConversationMemorySummary extends ConversationSummary {
   isArchived: boolean
 }
 
+interface TablePage<T> {
+  items: T[]
+  hasMore: boolean
+}
+
 interface DatabaseLocation {
   directory: string
   databasePath: string
@@ -123,6 +128,7 @@ interface UserApi {
   getActive: () => Promise<ActiveUser | undefined>
   createInitial: (input: CreateUserInput) => Promise<ActiveUser>
   list: () => Promise<UserSummary[]>
+  getPage: (offset?: number) => Promise<TablePage<UserSummary>>
   create: (input: CreateUserInput) => Promise<ActiveUser>
   update: (userId: number, input: CreateUserInput) => Promise<UserSummary>
   switch: (userId: number) => Promise<ActiveUser>
@@ -132,6 +138,7 @@ interface UserApi {
 
 interface MemoryApi {
   listConversationSummaries: () => Promise<ConversationMemorySummary[]>
+  getConversationSummaryPage: (offset?: number) => Promise<TablePage<ConversationMemorySummary>>
 }
 
 type DiaryWeatherCode =

@@ -428,12 +428,18 @@ watch(messages, () => void scrollToLatestMessage(), { deep: true })
   bottom: 0;
   left: 0;
   width: clamp(280px, 30vw, 360px);
+  overflow: hidden;
   background: var(--color-titlebar);
   box-shadow: 8px 0 24px rgb(0 0 0 / 12%);
 }
 
 .history-drawer__content {
+  display: flex;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
   padding: 14px 12px;
+  flex-direction: column;
 }
 
 h2 {
@@ -452,8 +458,30 @@ ul {
 
 .history-drawer ul {
   display: flex;
+  min-height: 0;
+  overflow-y: auto;
   gap: 4px;
+  flex: 1;
   flex-direction: column;
+}
+
+.history-drawer ul::-webkit-scrollbar {
+  width: 5px;
+}
+
+.history-drawer ul::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.history-drawer ul::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #a9a9a9;
+}
+
+.history-drawer ul::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .history-list-item {

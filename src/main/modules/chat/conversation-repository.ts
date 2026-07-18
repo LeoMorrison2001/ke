@@ -3,6 +3,7 @@ import { getDatabase } from '../../database'
 import { requireActiveUser } from '../users/user-repository'
 
 const MESSAGE_PAGE_SIZE = 10
+const TABLE_PAGE_SIZE = 20
 
 export interface ConversationSummary {
   id: string
@@ -39,6 +40,11 @@ export interface ConversationUiAction {
 
 export interface ConversationMessagePage {
   messages: ConversationMessage[]
+  hasMore: boolean
+}
+
+export interface ConversationMemorySummaryPage {
+  items: ConversationMemorySummary[]
   hasMore: boolean
 }
 
@@ -296,6 +302,52 @@ export const listConversationMemorySummaries = (): ConversationMemorySummary[] =
     messageCount: Number(row.message_count),
     isArchived: row.is_archived === 1
   }))
+}
+
+export const getConversationMemorySummaryPage = (
+  offset = 0,
+  pageSize = TABLE_PAGE_SIZE
+): ConversationMemorySummaryPage => {
+  const activeUser = requireActiveUser()
+  const safeOffset = Math.max(0, Math.floor(offset))
+  const safePageSize = Math.min(TABLE_PAGE_SIZE, Math.max(1, Math.floor(pageSize)))
+  const rows = getDatabase()
+    .prepare(
+      `SELECT c.id, c.title, c.conversation_date, c.created_time, c.updated_at, c.is_pinned,
+              c.is_archived, COUNT(m.id) AS message_count
+       FROM conversations c
+       LEFT JOIN conversation_memories m
+         ON m.conversation_id = c.id AND m.creator_id = c.creator_id
+       WHERE c.creator_id = ?
+       GROUP BY c.id
+       ORDER BY c.updated_at DESC
+       LIMIT ? OFFSET ?`
+    )
+    .all(activeUser.id, safePageSize + 1, safeOffset) as unknown as Array<{
+    id: string
+    title: string
+    conversation_date: string
+    created_time: string
+    updated_at: number
+    is_pinned: number
+    is_archived: number
+    message_count: number
+  }>
+  const hasMore = rows.length > safePageSize
+
+  return {
+    items: rows.slice(0, safePageSize).map((row) => ({
+      id: row.id,
+      title: row.title,
+      conversationDate: row.conversation_date,
+      createdTime: row.created_time,
+      isPinned: row.is_pinned === 1,
+      updatedAt: row.updated_at,
+      messageCount: Number(row.message_count),
+      isArchived: row.is_archived === 1
+    })),
+    hasMore
+  }
 }
 
 export const toggleConversationPinned = (conversationId: string): void => {

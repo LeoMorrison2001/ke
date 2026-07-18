@@ -23,6 +23,8 @@ interface UserInput {
 
 const router = useRouter()
 const users = ref<UserRecord[]>([])
+const hasMoreUsers = ref(false)
+const isLoadingUsers = ref(false)
 const dialogType = ref<DialogType>()
 const editingUser = ref<UserRecord>()
 const deletingUser = ref<UserRecord>()
@@ -41,8 +43,26 @@ const dialogTitle = computed(() => {
   return '删除用户'
 })
 
-const loadUsers = async (): Promise<void> => {
-  users.value = await window.api.user.list()
+const loadUsers = async (reset = false): Promise<void> => {
+  if (isLoadingUsers.value || (!reset && !hasMoreUsers.value)) return
+  isLoadingUsers.value = true
+  if (reset) errorMessage.value = ''
+  try {
+    const page = await window.api.user.getPage(reset ? 0 : users.value.length)
+    users.value = reset ? page.items : [...users.value, ...page.items]
+    hasMoreUsers.value = page.hasMore
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '读取用户信息失败，请稍后重试。'
+  } finally {
+    isLoadingUsers.value = false
+  }
+}
+
+const handleUserTableScroll = (event: Event): void => {
+  const target = event.target as HTMLDivElement
+  if (target.scrollTop + target.clientHeight >= target.scrollHeight - 80) {
+    void loadUsers()
+  }
 }
 
 const openAddDialog = (): void => {
@@ -93,7 +113,7 @@ const saveUser = async (): Promise<void> => {
       gender: form.gender,
       birthDate: form.birthDate
     })
-    await loadUsers()
+    await loadUsers(true)
     closeDialog(true)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '保存失败，请稍后重试。'
@@ -108,7 +128,7 @@ const switchUser = async (user: UserRecord): Promise<void> => {
   errorMessage.value = ''
   try {
     await window.api.user.switch(user.id)
-    await loadUsers()
+    await loadUsers(true)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '切换用户失败，请稍后重试。'
   } finally {
@@ -132,7 +152,7 @@ const deleteUser = async (): Promise<void> => {
 }
 
 onMounted(() => {
-  void loadUsers()
+  void loadUsers(true)
 })
 </script>
 
@@ -145,7 +165,15 @@ onMounted(() => {
     <p v-if="errorMessage" class="page-error">{{ errorMessage }}</p>
 
     <div class="table-wrap">
-      <table>
+      <table class="user-table table-header">
+        <colgroup>
+          <col class="column-name" />
+          <col class="column-preferred-name" />
+          <col class="column-gender" />
+          <col class="column-birth-date" />
+          <col class="column-status" />
+          <col class="column-actions" />
+        </colgroup>
         <thead>
           <tr>
             <th>姓名</th>
@@ -156,7 +184,18 @@ onMounted(() => {
             <th class="actions-column">操作</th>
           </tr>
         </thead>
-        <tbody>
+      </table>
+      <div class="table-scroll" @scroll="handleUserTableScroll">
+        <table class="user-table table-body">
+          <colgroup>
+            <col class="column-name" />
+            <col class="column-preferred-name" />
+            <col class="column-gender" />
+            <col class="column-birth-date" />
+            <col class="column-status" />
+            <col class="column-actions" />
+          </colgroup>
+          <tbody>
           <tr v-for="user in users" :key="user.id">
             <td>{{ user.name }}</td>
             <td>{{ user.preferredName }}</td>
@@ -180,8 +219,13 @@ onMounted(() => {
           <tr v-if="users.length === 0">
             <td class="empty-cell" colspan="6">暂无用户</td>
           </tr>
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+        <p v-if="isLoadingUsers" class="table-load-state">加载中…</p>
+        <p v-else-if="!hasMoreUsers && users.length > 0" class="table-load-state">
+          已加载全部用户
+        </p>
+      </div>
     </div>
 
     <div v-if="dialogType" class="modal-backdrop" @click.self="dismissDialog">
@@ -244,8 +288,12 @@ onMounted(() => {
 
 <style scoped>
 .user-information {
+  display: flex;
   width: 100%;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  flex-direction: column;
 }
 
 .user-information__toolbar {
@@ -303,20 +351,68 @@ onMounted(() => {
 }
 
 .table-wrap {
+  display: flex;
   box-sizing: border-box;
   width: 100%;
+  min-height: 0;
   padding: 0 20px 20px;
-  overflow-x: auto;
+  overflow: hidden;
+  flex: 1;
+  flex-direction: column;
 }
 
-table {
+.table-scroll {
+  min-height: 0;
+  overflow: auto;
+  flex: 1;
+}
+
+.table-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #a9a9a9;
+}
+
+.table-scroll::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.table-load-state {
+  margin: 12px 0;
+  color: var(--color-text-subtle);
+  font-size: 13px;
+  text-align: center;
+}
+
+.user-table {
   width: 100%;
   min-width: 760px;
+  table-layout: fixed;
   border-spacing: 0;
   color: var(--color-text-muted);
   font-size: 13px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+}
+
+.table-header {
+  overflow: hidden;
+  border-bottom: 0;
+  border-radius: 10px 10px 0 0;
+}
+
+.table-body {
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
 }
 
 th,
@@ -336,6 +432,27 @@ tbody tr:last-child td {
   border-bottom: 0;
 }
 
+.column-name {
+  width: 15%;
+}
+
+.column-preferred-name {
+  width: 17%;
+}
+
+.column-gender {
+  width: 10%;
+}
+
+.column-birth-date {
+  width: 18%;
+}
+
+.column-status {
+  width: 16%;
+}
+
+.column-actions,
 .actions-column {
   width: 180px;
 }
@@ -437,7 +554,7 @@ select {
   justify-content: flex-end;
 }
 
-:global(html[data-theme='dark']) table {
+:global(html[data-theme='dark']) .user-table {
   color: #d8dee8;
   border-color: #303030;
 }

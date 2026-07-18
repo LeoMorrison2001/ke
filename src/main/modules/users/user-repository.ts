@@ -17,6 +17,11 @@ export interface UserSummary extends ActiveUser {
   isActive: boolean
 }
 
+export interface UserPage {
+  items: UserSummary[]
+  hasMore: boolean
+}
+
 export interface CreateUserInput {
   name: string
   gender: UserGender
@@ -205,6 +210,24 @@ export const listUsers = (): UserSummary[] => {
     .all() as unknown as UserRow[]
 
   return rows.map(toUserSummary)
+}
+
+export const getUserPage = (offset = 0, pageSize = 20): UserPage => {
+  const safeOffset = Math.max(0, Math.floor(offset))
+  const safePageSize = Math.min(20, Math.max(1, Math.floor(pageSize)))
+  const rows = getDatabase()
+    .prepare(
+      `SELECT id, name, gender, birth_date, preferred_name, is_active
+       FROM users
+       ORDER BY is_active DESC, updated_at DESC, id DESC
+       LIMIT ? OFFSET ?`
+    )
+    .all(safePageSize + 1, safeOffset) as unknown as UserRow[]
+
+  return {
+    items: rows.slice(0, safePageSize).map(toUserSummary),
+    hasMore: rows.length > safePageSize
+  }
 }
 
 export const createUser = (input: CreateUserInput): ActiveUser => {
