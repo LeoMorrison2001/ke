@@ -25,7 +25,7 @@ const openPlugin = (plugin: RendererPlugin): void => {
   <section class="page-view">
     <header class="console">
       <h1>应用</h1>
-      <div class="console-actions"><button class="back-button" type="button" @click="router.push({ name: 'plugin-manager' })"><Settings2 :size="17" />管理插件</button><button class="back-button" type="button" @click="router.push({ name: 'home' })"><ArrowLeft :size="18" :stroke-width="1.8" />返回聊天</button></div>
+      <div class="console-actions"><button class="back-button" type="button" @click="router.push({ name: 'plugin-manager' })"><Settings2 :size="17" />管理应用</button><button class="back-button" type="button" @click="router.push({ name: 'home' })"><ArrowLeft :size="18" :stroke-width="1.8" />返回聊天</button></div>
     </header>
     <main class="apps-content">
       <section class="apps-group" aria-labelledby="installed-applications-title">

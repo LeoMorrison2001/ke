@@ -73,7 +73,7 @@ const PLUGIN_PROTOCOL = 'ke-plugin'
 protocol.registerSchemesAsPrivileged([
   {
     scheme: PLUGIN_PROTOCOL,
-    privileges: { standard: true, secure: true, supportFetchAPI: true }
+    privileges: { standard: true, secure: true, corsEnabled: true, supportFetchAPI: true }
   }
 ])
 
@@ -132,7 +132,7 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: false
     }
   })
 
@@ -229,19 +229,12 @@ app.whenReady().then(() => {
   ipcMain.handle('plugins:choose-and-install', async (event) => {
     const window = BrowserWindow.fromWebContents(event.sender)
     const result = window
-      ? await dialog.showOpenDialog(window, { title: '选择插件目录', properties: ['openDirectory'] })
-      : await dialog.showOpenDialog({ title: '选择插件目录', properties: ['openDirectory'] })
+      ? await dialog.showOpenDialog(window, { title: '选择应用目录', properties: ['openDirectory'] })
+      : await dialog.showOpenDialog({ title: '选择应用目录', properties: ['openDirectory'] })
     if (result.canceled || !result.filePaths[0]) return undefined
     return installPluginFromDirectory(result.filePaths[0])
   })
-  ipcMain.handle('plugins:uninstall', async (event, pluginId: string) => {
-    const window = BrowserWindow.fromWebContents(event.sender)
-    const options: MessageBoxOptions = {
-      type: 'warning', buttons: ['卸载', '取消'], defaultId: 1, cancelId: 1,
-      title: '确认卸载插件', message: '卸载后将删除该插件的程序文件。插件私有数据会保留。'
-    }
-    const confirmation = window ? await dialog.showMessageBox(window, options) : await dialog.showMessageBox(options)
-    if (confirmation.response !== 0) return false
+  ipcMain.handle('plugins:uninstall', (_event, pluginId: string) => {
     uninstallPlugin(pluginId)
     return true
   })

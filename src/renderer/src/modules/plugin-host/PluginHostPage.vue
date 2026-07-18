@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
-const pluginName = ref('插件')
+const pluginName = ref('应用')
 const pluginUrl = ref<string>()
 const loadError = ref('')
 const pluginFrame = ref<HTMLIFrameElement>()
@@ -14,7 +14,7 @@ const pluginId = computed(() => (typeof route.params.pluginId === 'string' ? rou
 
 const buildPluginUrl = (plugin: InstalledPlugin): string => {
   const entryPath = plugin.manifest.uiEntry
-  if (!entryPath) throw new Error('插件未声明页面入口。')
+  if (!entryPath) throw new Error('应用未声明页面入口。')
   const encodedPath = entryPath.split('/').map(encodeURIComponent).join('/')
   return `ke-plugin://${plugin.manifest.id}/${encodedPath}`
 }
@@ -39,7 +39,7 @@ const handlePluginMessage = (event: MessageEvent<unknown>): void => {
       event.source?.postMessage({ type: 'ke-plugin:response', requestId: event.data.requestId, ok: true, value }, '*')
     })
     .catch((error) => {
-      const message = error instanceof Error ? error.message : '插件请求失败。'
+      const message = error instanceof Error ? error.message : '应用请求失败。'
       event.source?.postMessage({ type: 'ke-plugin:response', requestId: event.data.requestId, ok: false, error: message }, '*')
     })
 }
@@ -53,12 +53,12 @@ onMounted(async () => {
         item.manifest.source === 'third-party' &&
         item.enabled
     )
-    if (!plugin) throw new Error('插件不存在、未启用，或暂时不可用。')
+    if (!plugin) throw new Error('应用不存在、未启动，或暂时不可用。')
 
     pluginName.value = plugin.manifest.name
     pluginUrl.value = buildPluginUrl(plugin)
   } catch (error) {
-    loadError.value = error instanceof Error ? error.message : '加载插件失败。'
+    loadError.value = error instanceof Error ? error.message : '加载应用失败。'
   }
 })
 
@@ -84,7 +84,7 @@ onBeforeUnmount(() => window.removeEventListener('message', handlePluginMessage)
         sandbox="allow-scripts allow-forms"
         referrerpolicy="no-referrer"
       ></iframe>
-      <p v-else class="plugin-state">{{ loadError || '正在加载插件…' }}</p>
+      <p v-else class="plugin-state">{{ loadError || '正在加载应用…' }}</p>
     </main>
   </section>
 </template>

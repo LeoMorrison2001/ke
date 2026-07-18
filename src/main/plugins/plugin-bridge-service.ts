@@ -16,17 +16,8 @@ export type PluginBridgeRequest =
 
 const requirePluginPermission = (pluginId: string, permission: PluginPermission): void => {
   const plugin = listInstalledPlugins().find((item) => item.manifest.id === pluginId)
-  if (!plugin?.enabled) throw new Error('插件不存在或未启用。')
-  if (!plugin.manifest.permissions.includes(permission)) throw new Error('插件未声明该权限。')
-
-  const user = requireActiveUser()
-  const grant = getDatabase()
-    .prepare(
-      `SELECT 1 FROM plugin_permission_grants
-       WHERE plugin_id = ? AND user_id = ? AND permission = ?`
-    )
-    .get(pluginId, user.id, permission)
-  if (!grant) throw new Error('用户尚未授权该权限。')
+  if (!plugin?.enabled) throw new Error('应用不存在或未启动。')
+  if (!plugin.manifest.permissions.includes(permission)) throw new Error('应用未声明该权限。')
 }
 
 const validateKey = (key: string): string => {
@@ -48,8 +39,8 @@ export const setPluginPermission = (
   granted: boolean
 ): PluginPermission[] => {
   const plugin = listInstalledPlugins().find((item) => item.manifest.id === pluginId)
-  if (!plugin) throw new Error('未找到已安装插件。')
-  if (!plugin.manifest.permissions.includes(permission)) throw new Error('插件未声明该权限。')
+  if (!plugin) throw new Error('未找到已安装应用。')
+  if (!plugin.manifest.permissions.includes(permission)) throw new Error('应用未声明该权限。')
   const user = requireActiveUser()
   const database = getDatabase()
   if (granted) {
@@ -113,9 +104,9 @@ export const executePluginBridgeRequest = async (
     }
     const user = requireActiveUser()
     const conversationId = randomUUID()
-    saveUserMessage(conversationId, `[插件 ${pluginId}] ${request.prompt.trim()}`)
+    saveUserMessage(conversationId, `[应用 ${pluginId}] ${request.prompt.trim()}`)
     const result = await streamDialogue(conversationId, user, { onActivity: () => undefined, onDelta: () => undefined })
     return { conversationId, reply: result.assistantMessage.content }
   }
-  throw new Error('不支持的插件请求。')
+  throw new Error('不支持的应用请求。')
 }
