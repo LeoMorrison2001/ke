@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { getDatabase } from '../../database'
-import { requireActiveUser } from '../users/user-repository'
+import { getDatabase } from '../../../database'
+import { requireActiveUser } from '../../../modules/users/user-repository'
 
 export type DiaryWeatherCode =
   | 'sunny'
@@ -147,7 +147,7 @@ const getEntryRow = (userId: number, entryDate: string): DiaryEntryRow | undefin
     .prepare(
       `SELECT id, entry_date, content, location_text, weather_code, mood_code,
               is_favorite, created_at, updated_at
-       FROM diary_entries WHERE user_id = ? AND entry_date = ?`
+       FROM plugin_diary_entries WHERE user_id = ? AND entry_date = ?`
     )
     .get(userId, entryDate) as DiaryEntryRow | undefined
 
@@ -155,7 +155,7 @@ const getLatestLocation = (userId: number, entryDate: string): string => {
   const row = getDatabase()
     .prepare(
       `SELECT location_text
-       FROM diary_entries
+       FROM plugin_diary_entries
        WHERE user_id = ? AND entry_date < ? AND location_text <> ''
        ORDER BY entry_date DESC
        LIMIT 1`
@@ -174,7 +174,7 @@ export const ensureDiaryEntry = (entryDate: string): DiaryEntry => {
 
   database
     .prepare(
-      `INSERT OR IGNORE INTO diary_entries
+      `INSERT OR IGNORE INTO plugin_diary_entries
         (id, user_id, entry_date, location_text, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`
     )
@@ -198,7 +198,7 @@ export const toggleDiaryEntryFavorite = (entryDate: string): DiaryEntry => {
   const database = getDatabase()
   const result = database
     .prepare(
-      `UPDATE diary_entries
+      `UPDATE plugin_diary_entries
        SET is_favorite = CASE is_favorite WHEN 1 THEN 0 ELSE 1 END, updated_at = ?
        WHERE user_id = ? AND entry_date = ?`
     )
@@ -217,7 +217,7 @@ export const listDiaryCalendarEntries = (month: string): DiaryCalendarEntry[] =>
   const rows = getDatabase()
     .prepare(
       `SELECT entry_date, mood_code
-       FROM diary_entries
+       FROM plugin_diary_entries
        WHERE user_id = ?
          AND entry_date >= ?
          AND entry_date < ?
@@ -251,7 +251,7 @@ export const listDiaryTimelineEntries = (
           .prepare(
             `SELECT entry_date, substr(content, 1, 240) AS content_preview,
                     location_text, weather_code, mood_code
-             FROM diary_entries
+             FROM plugin_diary_entries
              WHERE user_id = ? AND updated_at > created_at AND entry_date > ? ${favoriteCondition}
              ORDER BY entry_date ASC
              LIMIT ?`
@@ -261,7 +261,7 @@ export const listDiaryTimelineEntries = (
           .prepare(
             `SELECT entry_date, substr(content, 1, 240) AS content_preview,
                     location_text, weather_code, mood_code
-             FROM diary_entries
+             FROM plugin_diary_entries
              WHERE user_id = ? AND updated_at > created_at
                ${favoriteCondition}
                ${cursorDate ? 'AND entry_date < ?' : ''}
@@ -294,14 +294,14 @@ export const saveDiaryEntry = (input: SaveDiaryEntryInput): DiaryEntry => {
     database.exec('BEGIN IMMEDIATE;')
     database
       .prepare(
-        `INSERT OR IGNORE INTO diary_entries
+        `INSERT OR IGNORE INTO plugin_diary_entries
           (id, user_id, entry_date, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?)`
       )
       .run(randomUUID(), user.id, entryDate, now, now)
     database
       .prepare(
-        `UPDATE diary_entries
+        `UPDATE plugin_diary_entries
          SET content = ?, location_text = ?, weather_code = ?, mood_code = ?, updated_at = ?
          WHERE user_id = ? AND entry_date = ?
            AND (content <> ? OR location_text <> ? OR weather_code <> ? OR mood_code <> ?)`

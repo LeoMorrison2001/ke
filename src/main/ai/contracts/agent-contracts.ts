@@ -12,7 +12,7 @@ export interface UiAction {
   type: 'navigate'
   label: string
   description?: string
-  routeName: 'xiaoke-diary-today' | 'xiaoke-diary-entry'
+  routeName: string
   params?: Record<string, string>
   query?: Record<string, string>
 }

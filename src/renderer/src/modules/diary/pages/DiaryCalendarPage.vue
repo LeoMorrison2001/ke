@@ -67,7 +67,7 @@ const loadEntries = async (): Promise<void> => {
   const requestedMonth = monthKey.value
   loadError.value = ''
   try {
-    const entries = await window.api.diary.listCalendarEntries(requestedMonth)
+    const entries = await window.api.plugins.diary.listCalendarEntries(requestedMonth)
     if (requestedMonth !== monthKey.value) return
     moodByDate.value = Object.fromEntries(entries.map((entry) => [entry.entryDate, entry.moodCode]))
   } catch (error) {

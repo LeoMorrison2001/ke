@@ -3,6 +3,7 @@ import { Copy, Minus, Square, X } from 'lucide-vue-next'
 import { onMounted, onUnmounted, ref } from 'vue'
 import titlebarLogo from '../../../resources/icon.png'
 import { applyTheme, watchSystemTheme } from './theme'
+import PluginAgentRuntime from './modules/plugin-host/PluginAgentRuntime.vue'
 
 const {
   close,
@@ -78,6 +79,7 @@ onUnmounted(() => {
     <main class="content">
       <RouterView />
     </main>
+    <PluginAgentRuntime />
   </div>
 </template>
 

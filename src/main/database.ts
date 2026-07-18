@@ -13,7 +13,7 @@ import { app } from 'electron'
 
 const DATABASE_DIRECTORY_NAME = 'data'
 const DATABASE_FILE_NAME = 'ke.sqlite'
-const DATABASE_SCHEMA_VERSION = 10
+const DATABASE_SCHEMA_VERSION = 12
 const STORAGE_SETTINGS_FILE_NAME = 'storage-settings.json'
 
 let database: DatabaseSync | undefined
@@ -86,7 +86,7 @@ const applySchema = (connection: DatabaseSync): void => {
         FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL
       );
 
-      CREATE TABLE IF NOT EXISTS diary_entries (
+      CREATE TABLE IF NOT EXISTS plugin_diary_entries (
         id TEXT PRIMARY KEY,
         user_id INTEGER NOT NULL,
         entry_date TEXT NOT NULL,
@@ -148,6 +148,25 @@ const applySchema = (connection: DatabaseSync): void => {
         UNIQUE (message_id, position)
       );
 
+      CREATE TABLE IF NOT EXISTS plugin_permission_grants (
+        plugin_id TEXT NOT NULL,
+        user_id INTEGER NOT NULL,
+        permission TEXT NOT NULL,
+        granted_at INTEGER NOT NULL,
+        PRIMARY KEY (plugin_id, user_id, permission),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS plugin_storage (
+        plugin_id TEXT NOT NULL,
+        user_id INTEGER NOT NULL,
+        storage_key TEXT NOT NULL,
+        value_json TEXT NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (plugin_id, user_id, storage_key),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
       CREATE INDEX IF NOT EXISTS idx_conversations_updated_at
         ON conversations(updated_at DESC);
 
@@ -186,6 +205,19 @@ const applySchema = (connection: DatabaseSync): void => {
           : ''
       }
 
+      ${
+        currentVersion.user_version > 0 && currentVersion.user_version < 11
+          ? `INSERT OR IGNORE INTO plugin_diary_entries (
+               id, user_id, entry_date, content, location_text, weather_code,
+               mood_code, is_favorite, created_at, updated_at
+             )
+             SELECT id, user_id, entry_date, content, location_text, weather_code,
+                    mood_code, is_favorite, created_at, updated_at
+             FROM diary_entries;
+             DROP TABLE diary_entries;`
+          : ''
+      }
+
       CREATE INDEX IF NOT EXISTS idx_conversations_pinned_updated_at
         ON conversations(is_pinned DESC, updated_at DESC);
 
@@ -201,11 +233,11 @@ const applySchema = (connection: DatabaseSync): void => {
       CREATE INDEX IF NOT EXISTS idx_user_profile_change_logs_user_created
         ON user_profile_change_logs(user_id, created_at DESC);
 
-      CREATE INDEX IF NOT EXISTS idx_diary_entries_user_date
-        ON diary_entries(user_id, entry_date DESC);
+      CREATE INDEX IF NOT EXISTS idx_plugin_diary_entries_user_date
+        ON plugin_diary_entries(user_id, entry_date DESC);
 
-      CREATE INDEX IF NOT EXISTS idx_diary_entries_user_favorite_date
-        ON diary_entries(user_id, is_favorite, entry_date DESC);
+      CREATE INDEX IF NOT EXISTS idx_plugin_diary_entries_user_favorite_date
+        ON plugin_diary_entries(user_id, is_favorite, entry_date DESC);
 
       CREATE INDEX IF NOT EXISTS idx_agent_task_runs_conversation_updated
         ON agent_task_runs(conversation_id, updated_at DESC);
@@ -215,6 +247,9 @@ const applySchema = (connection: DatabaseSync): void => {
 
       CREATE INDEX IF NOT EXISTS idx_conversation_message_actions_message_position
         ON conversation_message_actions(message_id, position ASC);
+
+      CREATE INDEX IF NOT EXISTS idx_plugin_storage_plugin_user_updated
+        ON plugin_storage(plugin_id, user_id, updated_at DESC);
 
       CREATE UNIQUE INDEX IF NOT EXISTS idx_users_only_one_active
         ON users(is_active) WHERE is_active = 1;

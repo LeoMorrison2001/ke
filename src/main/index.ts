@@ -5,10 +5,13 @@ import {
   BrowserWindow,
   dialog,
   ipcMain,
+  net,
+  protocol,
   type MessageBoxOptions,
   type OpenDialogOptions
 } from 'electron'
-import { join } from 'path'
+import { join, resolve, sep } from 'path'
+import { pathToFileURL } from 'node:url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import {
@@ -17,6 +20,20 @@ import {
   initializeDatabase,
   migrateDatabaseDirectory
 } from './database'
+import {
+  getEnabledThirdPartyPluginDirectory,
+  installPluginFromDirectory,
+  listInstalledPlugins,
+  setPluginEnabled,
+  uninstallPlugin
+} from './plugins/plugin-installation-service'
+import {
+  executePluginBridgeRequest,
+  listGrantedPluginPermissions,
+  setPluginPermission,
+  type PluginBridgeRequest
+} from './plugins/plugin-bridge-service'
+import { registerPluginAgentRuntime, resolvePluginAgentInvocation, unregisterPluginAgentRuntime } from './plugins/plugin-agent-runtime-service'
 import {
   archiveConversation,
   getConversationMemorySummaryPage,
@@ -37,7 +54,7 @@ import {
   toggleDiaryEntryFavorite,
   type ListDiaryTimelineInput,
   type SaveDiaryEntryInput
-} from './modules/diary/diary-repository'
+} from './plugins/builtin/diary/diary-repository'
 import {
   createInitialUser,
   createUser,
@@ -50,6 +67,38 @@ import {
   updateUser,
   type CreateUserInput
 } from './modules/users/user-repository'
+
+const PLUGIN_PROTOCOL = 'ke-plugin'
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: PLUGIN_PROTOCOL,
+    privileges: { standard: true, secure: true, supportFetchAPI: true }
+  }
+])
+
+const respondWithPluginNotFound = (): Response => new Response('Plugin resource not found.', { status: 404 })
+
+const registerPluginProtocol = (): void => {
+  protocol.handle(PLUGIN_PROTOCOL, (request) => {
+    try {
+      const requestUrl = new URL(request.url)
+      const pluginId = requestUrl.hostname
+      const pluginDirectory = getEnabledThirdPartyPluginDirectory(pluginId)
+      if (!pluginDirectory) return respondWithPluginNotFound()
+
+      const relativePath = decodeURIComponent(requestUrl.pathname).replace(/^\/+/, '')
+      if (!relativePath) return respondWithPluginNotFound()
+
+      const resourcePath = resolve(pluginDirectory, relativePath)
+      if (!resourcePath.startsWith(`${pluginDirectory}${sep}`)) return respondWithPluginNotFound()
+
+      return net.fetch(pathToFileURL(resourcePath).toString())
+    } catch {
+      return respondWithPluginNotFound()
+    }
+  })
+}
 
 const streamChat = async (sender: Electron.WebContents, conversationId: string): Promise<void> => {
   try {
@@ -117,6 +166,7 @@ function createWindow(): void {
 app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
+  registerPluginProtocol()
   initializeDatabase()
 
   // Default open or close DevTools by F12 in development
@@ -149,23 +199,68 @@ app.whenReady().then(() => {
     return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false
   })
 
-  ipcMain.handle('diary:ensure-entry', (_event, entryDate: string) => ensureDiaryEntry(entryDate))
+  ipcMain.handle('plugins:list-installed', () => listInstalledPlugins())
 
-  ipcMain.handle('diary:get-entry', (_event, entryDate: string) => getDiaryEntry(entryDate))
+  ipcMain.handle('plugins:set-enabled', (_event, pluginId: string, enabled: boolean) =>
+    setPluginEnabled(pluginId, enabled)
+  )
+  ipcMain.handle('plugins:get-granted-permissions', (_event, pluginId: string) =>
+    listGrantedPluginPermissions(pluginId)
+  )
+  ipcMain.handle(
+    'plugins:set-permission',
+    (_event, pluginId: string, permission: string, granted: boolean) =>
+      setPluginPermission(pluginId, permission as never, granted)
+  )
+  ipcMain.handle('plugins:bridge-request', (_event, pluginId: string, request: PluginBridgeRequest) =>
+    executePluginBridgeRequest(pluginId, request)
+  )
+  ipcMain.on('plugins:agent-runtime-register', (event) => registerPluginAgentRuntime(event.sender))
+  ipcMain.on('plugins:agent-runtime-unregister', (event) => unregisterPluginAgentRuntime(event.sender))
+  ipcMain.on('plugins:agent-result', (_event, invocationId: string, result) =>
+    resolvePluginAgentInvocation(invocationId, result)
+  )
+  ipcMain.handle('plugins:choose-and-install', async (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    const result = window
+      ? await dialog.showOpenDialog(window, { title: '选择插件目录', properties: ['openDirectory'] })
+      : await dialog.showOpenDialog({ title: '选择插件目录', properties: ['openDirectory'] })
+    if (result.canceled || !result.filePaths[0]) return undefined
+    return installPluginFromDirectory(result.filePaths[0])
+  })
+  ipcMain.handle('plugins:uninstall', async (event, pluginId: string) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    const options: MessageBoxOptions = {
+      type: 'warning', buttons: ['卸载', '取消'], defaultId: 1, cancelId: 1,
+      title: '确认卸载插件', message: '卸载后将删除该插件的程序文件。插件私有数据会保留。'
+    }
+    const confirmation = window ? await dialog.showMessageBox(window, options) : await dialog.showMessageBox(options)
+    if (confirmation.response !== 0) return false
+    uninstallPlugin(pluginId)
+    return true
+  })
 
-  ipcMain.handle('diary:list-calendar-entries', (_event, month: string) =>
+  ipcMain.handle('plugin:diary:ensure-entry', (_event, entryDate: string) =>
+    ensureDiaryEntry(entryDate)
+  )
+
+  ipcMain.handle('plugin:diary:get-entry', (_event, entryDate: string) => getDiaryEntry(entryDate))
+
+  ipcMain.handle('plugin:diary:list-calendar-entries', (_event, month: string) =>
     listDiaryCalendarEntries(month)
   )
 
-  ipcMain.handle('diary:list-timeline-entries', (_event, input: ListDiaryTimelineInput) =>
+  ipcMain.handle('plugin:diary:list-timeline-entries', (_event, input: ListDiaryTimelineInput) =>
     listDiaryTimelineEntries(input)
   )
 
-  ipcMain.handle('diary:toggle-entry-favorite', (_event, entryDate: string) =>
+  ipcMain.handle('plugin:diary:toggle-entry-favorite', (_event, entryDate: string) =>
     toggleDiaryEntryFavorite(entryDate)
   )
 
-  ipcMain.handle('diary:save-entry', (_event, input: SaveDiaryEntryInput) => saveDiaryEntry(input))
+  ipcMain.handle('plugin:diary:save-entry', (_event, input: SaveDiaryEntryInput) =>
+    saveDiaryEntry(input)
+  )
 
   ipcMain.handle('user:get-active', () => getActiveUser())
 

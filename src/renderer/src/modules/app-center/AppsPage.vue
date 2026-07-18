@@ -1,30 +1,51 @@
 <script setup lang="ts">
-import { ArrowLeft, BookOpenText } from 'lucide-vue-next'
+import { ArrowLeft, Settings2 } from 'lucide-vue-next'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import type { RendererPlugin } from '../../plugins/plugin-contracts'
+import { getEnabledRendererPlugins } from '../../plugins/plugin-registry'
 
 const router = useRouter()
+const plugins = ref<RendererPlugin[]>([])
+
+onMounted(async () => {
+  plugins.value = getEnabledRendererPlugins(await window.api.plugins.listInstalled())
+})
+
+const openPlugin = (plugin: RendererPlugin): void => {
+  if (plugin.source === 'third-party') {
+    void router.push({ name: 'plugin-host', params: { pluginId: plugin.id } })
+    return
+  }
+  void router.push({ name: plugin.entryRouteName })
+}
 </script>
 
 <template>
   <section class="page-view">
     <header class="console">
       <h1>应用</h1>
-      <button class="back-button" type="button" @click="router.push({ name: 'home' })">
-        <ArrowLeft :size="18" :stroke-width="1.8" />
-        返回聊天
-      </button>
+      <div class="console-actions"><button class="back-button" type="button" @click="router.push({ name: 'plugin-manager' })"><Settings2 :size="17" />管理插件</button><button class="back-button" type="button" @click="router.push({ name: 'home' })"><ArrowLeft :size="18" :stroke-width="1.8" />返回聊天</button></div>
     </header>
     <main class="apps-content">
       <section class="apps-group" aria-labelledby="installed-applications-title">
         <h2 id="installed-applications-title">已安装应用</h2>
         <div class="apps-group__content">
           <button
+            v-for="plugin in plugins"
+            :key="plugin.id"
+            :aria-label="`打开${plugin.name}`"
             class="application-card"
             type="button"
-            @click="router.push({ name: 'xiaoke-diary' })"
+            @click="openPlugin(plugin)"
           >
-            <BookOpenText class="diary-icon" :size="26" :stroke-width="1.7" />
-            <span>小可日记</span>
+            <component
+              :is="plugin.icon"
+              :size="26"
+              :stroke-width="1.7"
+              :style="{ color: plugin.accentColor }"
+            />
+            <span>{{ plugin.name }}</span>
           </button>
         </div>
       </section>
@@ -81,6 +102,8 @@ h1 {
   background: var(--color-surface-hover);
 }
 
+.console-actions { display: flex; gap: 4px; }
+
 .apps-content {
   display: flex;
   overflow-y: auto;
@@ -132,10 +155,6 @@ h2 {
 .application-card:hover {
   border-color: var(--color-border);
   background: var(--color-surface-hover);
-}
-
-.diary-icon {
-  color: #b97842;
 }
 
 @media (max-width: 640px) {

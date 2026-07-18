@@ -97,7 +97,7 @@ const loadInitialEntries = async (): Promise<void> => {
   isInitialLoading.value = true
   loadError.value = ''
   try {
-    const page = (await window.api.diary.listTimelineEntries({
+    const page = (await window.api.plugins.diary.listTimelineEntries({
       direction: 'older',
       limit: PAGE_SIZE,
       favoriteOnly: props.favoriteOnly
@@ -123,7 +123,7 @@ const loadOlderEntries = async (): Promise<void> => {
   const requestVersion = dataVersion
   loadError.value = ''
   try {
-    const page = (await window.api.diary.listTimelineEntries({
+    const page = (await window.api.plugins.diary.listTimelineEntries({
       cursorDate: oldest.entryDate,
       direction: 'older',
       limit: PAGE_SIZE,
@@ -162,7 +162,7 @@ const loadNewerEntries = async (): Promise<void> => {
   const requestVersion = dataVersion
   loadError.value = ''
   try {
-    const page = (await window.api.diary.listTimelineEntries({
+    const page = (await window.api.plugins.diary.listTimelineEntries({
       cursorDate: newest.entryDate,
       direction: 'newer',
       limit: PAGE_SIZE,

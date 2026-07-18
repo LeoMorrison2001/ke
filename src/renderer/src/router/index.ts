@@ -1,5 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import AppsPage from '../modules/app-center/AppsPage.vue'
+import PluginHostPage from '../modules/plugin-host/PluginHostPage.vue'
+import PluginManagerPage from '../modules/plugin-host/PluginManagerPage.vue'
 import { diaryRoutes } from '../modules/diary/diary.routes'
 import { memoryRoutes } from '../modules/memory/memory.routes'
 import HomePage from '../pages/HomePage.vue'
@@ -24,6 +26,12 @@ const router = createRouter({
       name: 'applications',
       component: AppsPage
     },
+    {
+      path: '/plugins/:pluginId',
+      name: 'plugin-host',
+      component: PluginHostPage
+    },
+    { path: '/plugins', name: 'plugin-manager', component: PluginManagerPage },
     ...memoryRoutes,
     ...diaryRoutes,
     {

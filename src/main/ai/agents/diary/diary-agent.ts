@@ -2,7 +2,7 @@ import {
   getDiaryEntry,
   saveDiaryEntry,
   toggleDiaryEntryFavorite
-} from '../../../modules/diary/diary-repository'
+} from '../../../plugins/builtin/diary/diary-repository'
 import type { AgentDefinition, AgentResult, AgentTask } from '../../contracts/agent-contracts'
 
 const moodLabels = {

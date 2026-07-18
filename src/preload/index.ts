@@ -50,7 +50,7 @@ interface ChatUiAction {
   type: 'navigate'
   label: string
   description?: string
-  routeName: 'xiaoke-diary-today' | 'xiaoke-diary-entry'
+  routeName: string
   params?: Record<string, string>
   query?: Record<string, string>
 }
@@ -131,6 +131,28 @@ interface ListDiaryTimelineInput {
   favoriteOnly?: boolean
 }
 
+type PluginPermission =
+  | 'user.profile.read'
+  | 'memory.read'
+  | 'memory.write'
+  | 'storage.read'
+  | 'storage.write'
+  | 'agent.request'
+
+interface InstalledPlugin {
+  manifest: {
+    id: string
+    name: string
+    version: string
+    description: string
+    entryRouteName: string
+    uiEntry?: string
+    permissions: PluginPermission[]
+    source: 'builtin' | 'third-party'
+  }
+  enabled: boolean
+}
+
 interface ActiveUser {
   id: number
   name: string
@@ -168,19 +190,45 @@ const api = {
       }
     }
   },
-  diary: {
-    ensureEntry: (entryDate: string): Promise<DiaryEntry> =>
-      ipcRenderer.invoke('diary:ensure-entry', entryDate),
-    getEntry: (entryDate: string): Promise<DiaryEntry | undefined> =>
-      ipcRenderer.invoke('diary:get-entry', entryDate),
-    listCalendarEntries: (month: string): Promise<DiaryCalendarEntry[]> =>
-      ipcRenderer.invoke('diary:list-calendar-entries', month),
-    listTimelineEntries: (input: ListDiaryTimelineInput): Promise<DiaryTimelineEntry[]> =>
-      ipcRenderer.invoke('diary:list-timeline-entries', input),
-    toggleEntryFavorite: (entryDate: string): Promise<DiaryEntry> =>
-      ipcRenderer.invoke('diary:toggle-entry-favorite', entryDate),
-    saveEntry: (input: SaveDiaryEntryInput): Promise<DiaryEntry> =>
-      ipcRenderer.invoke('diary:save-entry', input)
+  plugins: {
+    listInstalled: (): Promise<InstalledPlugin[]> => ipcRenderer.invoke('plugins:list-installed'),
+    setEnabled: (pluginId: string, enabled: boolean): Promise<InstalledPlugin> =>
+      ipcRenderer.invoke('plugins:set-enabled', pluginId, enabled),
+    getGrantedPermissions: (pluginId: string): Promise<PluginPermission[]> =>
+      ipcRenderer.invoke('plugins:get-granted-permissions', pluginId),
+    setPermission: (
+      pluginId: string,
+      permission: PluginPermission,
+      granted: boolean
+    ): Promise<PluginPermission[]> =>
+      ipcRenderer.invoke('plugins:set-permission', pluginId, permission, granted),
+    bridgeRequest: (pluginId: string, request: unknown): Promise<unknown> =>
+      ipcRenderer.invoke('plugins:bridge-request', pluginId, request),
+    chooseAndInstall: (): Promise<InstalledPlugin | undefined> =>
+      ipcRenderer.invoke('plugins:choose-and-install'),
+    uninstall: (pluginId: string): Promise<boolean> => ipcRenderer.invoke('plugins:uninstall', pluginId),
+    registerAgentRuntime: (): void => ipcRenderer.send('plugins:agent-runtime-register'),
+    unregisterAgentRuntime: (): void => ipcRenderer.send('plugins:agent-runtime-unregister'),
+    resolveAgentInvocation: (invocationId: string, result: unknown): void => ipcRenderer.send('plugins:agent-result', invocationId, result),
+    onAgentInvoke: (callback: (invocation: unknown) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, invocation: unknown): void => callback(invocation)
+      ipcRenderer.on('plugins:agent-invoke', listener)
+      return () => ipcRenderer.removeListener('plugins:agent-invoke', listener)
+    },
+    diary: {
+      ensureEntry: (entryDate: string): Promise<DiaryEntry> =>
+        ipcRenderer.invoke('plugin:diary:ensure-entry', entryDate),
+      getEntry: (entryDate: string): Promise<DiaryEntry | undefined> =>
+        ipcRenderer.invoke('plugin:diary:get-entry', entryDate),
+      listCalendarEntries: (month: string): Promise<DiaryCalendarEntry[]> =>
+        ipcRenderer.invoke('plugin:diary:list-calendar-entries', month),
+      listTimelineEntries: (input: ListDiaryTimelineInput): Promise<DiaryTimelineEntry[]> =>
+        ipcRenderer.invoke('plugin:diary:list-timeline-entries', input),
+      toggleEntryFavorite: (entryDate: string): Promise<DiaryEntry> =>
+        ipcRenderer.invoke('plugin:diary:toggle-entry-favorite', entryDate),
+      saveEntry: (input: SaveDiaryEntryInput): Promise<DiaryEntry> =>
+        ipcRenderer.invoke('plugin:diary:save-entry', input)
+    }
   },
   chat: {
     saveUserMessage: (conversationId: string, content: string): Promise<ChatMessage> =>

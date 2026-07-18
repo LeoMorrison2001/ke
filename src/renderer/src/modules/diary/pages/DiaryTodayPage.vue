@@ -136,7 +136,7 @@ const saveDiary = async (): Promise<void> => {
   saveStatus.value = 'saving'
   saveError.value = ''
   try {
-    await window.api.diary.saveEntry({ entryDate: diaryEntryDate.value, ...snapshot })
+    await window.api.plugins.diary.saveEntry({ entryDate: diaryEntryDate.value, ...snapshot })
     savedSnapshot = snapshot
     saveStatus.value = isSameSnapshot(savedSnapshot, getSnapshot()) ? 'saved' : 'unsaved'
   } catch (error) {
@@ -174,7 +174,7 @@ const toggleFavorite = async (): Promise<void> => {
 
   isFavoriteUpdating.value = true
   try {
-    const entry = await window.api.diary.toggleEntryFavorite(diaryEntryDate.value)
+    const entry = await window.api.plugins.diary.toggleEntryFavorite(diaryEntryDate.value)
     isFavorite.value = entry.isFavorite
   } catch (error) {
     saveError.value = error instanceof Error ? error.message : '更新收藏状态失败，请稍后重试。'
@@ -217,8 +217,8 @@ onMounted(() => {
   const initializeDiary = async (): Promise<void> => {
     try {
       const entry = props.entryDate
-        ? await window.api.diary.getEntry(diaryEntryDate.value)
-        : await window.api.diary.ensureEntry(diaryEntryDate.value)
+        ? await window.api.plugins.diary.getEntry(diaryEntryDate.value)
+        : await window.api.plugins.diary.ensureEntry(diaryEntryDate.value)
       if (entry) {
         hasExistingEntry.value = true
         isFavorite.value = entry.isFavorite

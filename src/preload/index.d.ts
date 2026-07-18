@@ -57,7 +57,7 @@ interface ChatUiAction {
   type: 'navigate'
   label: string
   description?: string
-  routeName: 'xiaoke-diary-today' | 'xiaoke-diary-entry'
+  routeName: string
   params?: Record<string, string>
   query?: Record<string, string>
 }
@@ -202,12 +202,51 @@ interface DiaryApi {
   saveEntry: (input: SaveDiaryEntryInput) => Promise<DiaryEntry>
 }
 
+type PluginPermission =
+  | 'user.profile.read'
+  | 'memory.read'
+  | 'memory.write'
+  | 'storage.read'
+  | 'storage.write'
+  | 'agent.request'
+
+interface InstalledPlugin {
+  manifest: {
+    id: string
+    name: string
+    version: string
+    description: string
+    entryRouteName: string
+    uiEntry?: string
+    permissions: PluginPermission[]
+    source: 'builtin' | 'third-party'
+  }
+  enabled: boolean
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
     api: {
       windowControls: WindowControls
-      diary: DiaryApi
+      plugins: {
+        listInstalled: () => Promise<InstalledPlugin[]>
+        setEnabled: (pluginId: string, enabled: boolean) => Promise<InstalledPlugin>
+        getGrantedPermissions: (pluginId: string) => Promise<PluginPermission[]>
+        setPermission: (
+          pluginId: string,
+          permission: PluginPermission,
+          granted: boolean
+        ) => Promise<PluginPermission[]>
+        bridgeRequest: (pluginId: string, request: unknown) => Promise<unknown>
+        chooseAndInstall: () => Promise<InstalledPlugin | undefined>
+        uninstall: (pluginId: string) => Promise<boolean>
+        registerAgentRuntime: () => void
+        unregisterAgentRuntime: () => void
+        resolveAgentInvocation: (invocationId: string, result: unknown) => void
+        onAgentInvoke: (callback: (invocation: unknown) => void) => () => void
+        diary: DiaryApi
+      }
       chat: ChatApi
       user: UserApi
       memory: MemoryApi
