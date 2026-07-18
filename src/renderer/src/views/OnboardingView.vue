@@ -131,7 +131,7 @@ const previousStep = (): void => {
 
 const cancelAddingUser = async (): Promise<void> => {
   if (!isAddingUser.value) return
-  await router.replace({ name: 'xiaoke-memory-section', params: { section: 'profile' } })
+  await router.replace({ name: 'xiaoke-memory-profile' })
 }
 
 const createUser = async (): Promise<void> => {
@@ -151,7 +151,7 @@ const createUser = async (): Promise<void> => {
     }
     if (isAddingUser.value) {
       await window.api.user.create(input)
-      await router.replace({ name: 'xiaoke-memory-section', params: { section: 'profile' } })
+      await router.replace({ name: 'xiaoke-memory-profile' })
     } else {
       await window.api.user.createInitial(input)
       await router.replace({ name: 'home' })

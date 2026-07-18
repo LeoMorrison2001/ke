@@ -5,6 +5,10 @@ import SettingsView from '../views/SettingsView.vue'
 import OnboardingView from '../views/OnboardingView.vue'
 import XiaokeMemoryView from '../views/XiaokeMemoryView.vue'
 import XiaokeDiaryView from '../views/XiaokeDiaryView.vue'
+import MemorySectionView from '../views/MemorySectionView.vue'
+import UserInformationPanel from '../views/UserInformationPanel.vue'
+import ConversationMemoryPanel from '../views/ConversationMemoryPanel.vue'
+import DiarySectionView from '../views/DiarySectionView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -27,17 +31,70 @@ const router = createRouter({
     {
       path: '/applications/xiaoke-memory',
       name: 'xiaoke-memory',
-      redirect: { name: 'xiaoke-memory-section', params: { section: 'profile' } }
-    },
-    {
-      path: '/applications/xiaoke-memory/:section(profile|long-term|short-term|conversation|scheduled)',
-      name: 'xiaoke-memory-section',
-      component: XiaokeMemoryView
+      component: XiaokeMemoryView,
+      redirect: { name: 'xiaoke-memory-profile' },
+      children: [
+        {
+          path: 'profile',
+          name: 'xiaoke-memory-profile',
+          component: UserInformationPanel
+        },
+        {
+          path: 'long-term',
+          name: 'xiaoke-memory-long-term',
+          component: MemorySectionView,
+          props: { title: '长期记忆' }
+        },
+        {
+          path: 'short-term',
+          name: 'xiaoke-memory-short-term',
+          component: MemorySectionView,
+          props: { title: '短期记忆' }
+        },
+        {
+          path: 'conversation',
+          name: 'xiaoke-memory-conversation',
+          component: ConversationMemoryPanel
+        },
+        {
+          path: 'scheduled',
+          name: 'xiaoke-memory-scheduled',
+          component: MemorySectionView,
+          props: { title: '定时记忆' }
+        }
+      ]
     },
     {
       path: '/applications/xiaoke-diary',
       name: 'xiaoke-diary',
-      component: XiaokeDiaryView
+      component: XiaokeDiaryView,
+      redirect: { name: 'xiaoke-diary-today' },
+      children: [
+        {
+          path: 'today',
+          name: 'xiaoke-diary-today',
+          component: DiarySectionView,
+          props: { title: '今天' }
+        },
+        {
+          path: 'calendar',
+          name: 'xiaoke-diary-calendar',
+          component: DiarySectionView,
+          props: { title: '日历' }
+        },
+        {
+          path: 'timeline',
+          name: 'xiaoke-diary-timeline',
+          component: DiarySectionView,
+          props: { title: '时间线' }
+        },
+        {
+          path: 'favorites',
+          name: 'xiaoke-diary-favorites',
+          component: DiarySectionView,
+          props: { title: '收藏' }
+        }
+      ]
     },
     {
       path: '/settings',

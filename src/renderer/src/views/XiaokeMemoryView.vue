@@ -1,32 +1,35 @@
 <script setup lang="ts">
 import { ArrowLeft } from 'lucide-vue-next'
 import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import UserInformationPanel from './UserInformationPanel.vue'
-import ConversationMemoryPanel from './ConversationMemoryPanel.vue'
+import { RouterView, useRoute, useRouter } from 'vue-router'
 
 interface MemoryMenuItem {
   title: string
-  section: 'profile' | 'long-term' | 'short-term' | 'conversation' | 'scheduled'
+  routeName:
+    | 'xiaoke-memory-profile'
+    | 'xiaoke-memory-long-term'
+    | 'xiaoke-memory-short-term'
+    | 'xiaoke-memory-conversation'
+    | 'xiaoke-memory-scheduled'
 }
 
 const memoryMenu: MemoryMenuItem[] = [
-  { title: '用户信息', section: 'profile' },
-  { title: '长期记忆', section: 'long-term' },
-  { title: '短期记忆', section: 'short-term' },
-  { title: '对话记忆', section: 'conversation' },
-  { title: '定时记忆', section: 'scheduled' }
+  { title: '用户信息', routeName: 'xiaoke-memory-profile' },
+  { title: '长期记忆', routeName: 'xiaoke-memory-long-term' },
+  { title: '短期记忆', routeName: 'xiaoke-memory-short-term' },
+  { title: '对话记忆', routeName: 'xiaoke-memory-conversation' },
+  { title: '定时记忆', routeName: 'xiaoke-memory-scheduled' }
 ]
 
 const route = useRoute()
 const router = useRouter()
-const activeSection = computed(() => route.params.section)
+const activeRouteName = computed(() => route.name)
 const activeMenuItem = computed(() =>
-  memoryMenu.find((item) => item.section === activeSection.value)
+  memoryMenu.find((item) => item.routeName === activeRouteName.value)
 )
 
-const openSection = (section: MemoryMenuItem['section']): void => {
-  void router.push({ name: 'xiaoke-memory-section', params: { section } })
+const openSection = (routeName: MemoryMenuItem['routeName']): void => {
+  void router.push({ name: routeName })
 }
 </script>
 
@@ -43,10 +46,10 @@ const openSection = (section: MemoryMenuItem['section']): void => {
       <nav class="memory-menu" aria-label="小可记忆菜单">
         <button
           v-for="item in memoryMenu"
-          :key="item.section"
-          :class="{ active: item.section === activeSection }"
+          :key="item.routeName"
+          :class="{ active: item.routeName === activeRouteName }"
           type="button"
-          @click="openSection(item.section)"
+          @click="openSection(item.routeName)"
         >
           {{ item.title }}
         </button>
@@ -55,14 +58,12 @@ const openSection = (section: MemoryMenuItem['section']): void => {
         :class="[
           'memory-content',
           {
-            'memory-content--panel': activeSection === 'profile' || activeSection === 'conversation'
+            'memory-content--panel': true
           }
         ]"
         :aria-label="activeMenuItem?.title"
       >
-        <UserInformationPanel v-if="activeSection === 'profile'" />
-        <ConversationMemoryPanel v-else-if="activeSection === 'conversation'" />
-        <p v-else>{{ activeMenuItem?.title }}</p>
+        <RouterView />
       </section>
     </main>
   </section>

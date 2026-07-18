@@ -1,11 +1,24 @@
 <script setup lang="ts">
 import { ArrowLeft } from 'lucide-vue-next'
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { RouterView, useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
-const diaryMenu = ['今天', '日历', '时间线', '收藏']
-const activeMenuItem = ref('今天')
+const route = useRoute()
+const diaryMenu = [
+  { title: '今天', routeName: 'xiaoke-diary-today' },
+  { title: '日历', routeName: 'xiaoke-diary-calendar' },
+  { title: '时间线', routeName: 'xiaoke-diary-timeline' },
+  { title: '收藏', routeName: 'xiaoke-diary-favorites' }
+] as const
+const activeRouteName = computed(() => route.name)
+const activeMenuItem = computed(() =>
+  diaryMenu.find((item) => item.routeName === activeRouteName.value)
+)
+
+const openSection = (routeName: (typeof diaryMenu)[number]['routeName']): void => {
+  void router.push({ name: routeName })
+}
 </script>
 
 <template>
@@ -21,16 +34,16 @@ const activeMenuItem = ref('今天')
       <nav class="diary-menu" aria-label="小可日记菜单">
         <button
           v-for="item in diaryMenu"
-          :key="item"
-          :class="{ active: item === activeMenuItem }"
+          :key="item.routeName"
+          :class="{ active: item.routeName === activeRouteName }"
           type="button"
-          @click="activeMenuItem = item"
+          @click="openSection(item.routeName)"
         >
-          {{ item }}
+          {{ item.title }}
         </button>
       </nav>
-      <section class="diary-content" :aria-label="activeMenuItem">
-        <p>小可日记</p>
+      <section class="diary-content" :aria-label="activeMenuItem?.title">
+        <RouterView />
       </section>
     </main>
   </section>
