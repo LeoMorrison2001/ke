@@ -1,0 +1,17 @@
+{
+  "id": "example.quick-note",
+  "name": "快速便签",
+  "version": "1.0.0",
+  "description": "一个演示私有存储与主 Agent 调用的示例插件。",
+  "entryRouteName": "plugin-host",
+  "uiEntry": "index.html",
+  "permissions": ["storage.read", "storage.write", "user.profile.read", "agent.request"],
+  "source": "third-party",
+  "agentCapabilities": [{
+    "id": "note.save",
+    "name": "保存便签",
+    "description": "保存用户明确提供的一条便签内容。",
+    "inputSchema": { "type": "object", "properties": { "content": { "type": "string", "description": "便签内容" } }, "required": ["content"], "additionalProperties": false },
+    "permissions": ["storage.write"]
+  }]
+}
